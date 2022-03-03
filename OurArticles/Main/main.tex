@@ -1,0 +1,41 @@
+\documentclass[runningheads]{llncs}
+
+%%% Dependencies
+
+% \usepackage[utf8]{inputenc} // Is not needed for LaTeX anymore
+% \usepackage[english]{babel} // I'm not quite sure if this one is needed
+
+% Sets font
+\usepackage[T1]{fontenc}
+
+% Include figures, graphs, images, preferably in .eps format
+\usepackage{graphicx}
+
+% Clickable links, refs, urls
+% Inside the brackets can be removed if cross-references should not be colored
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{color}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+% Table lines
+\usepackage{booktabs}
+
+\begin{document}
+
+%%% Keep separate sections in own files, and use \input to add them to the main file.
+\mainmatter
+
+
+\input{OurArticles/Proposal/FrontMatter/titlepage}
+\input{OurArticles/Proposal/FrontMatter/abstract}
+% \input{OurArticles/Proposal/FrontMatter/tableofcontents}
+
+
+\input{OurArticles/Proposal/Body/1-introduction}
+
+\cite{he_exploiting_2018}
+
+\appendix
+\input{OurArticles/Proposal/Appendices/bibliography}
+
+\end{document}
