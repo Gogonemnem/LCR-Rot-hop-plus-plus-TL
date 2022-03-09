@@ -124,16 +124,22 @@ class BilinearAttention(tf.keras.layers.Layer):
 
 
 def main():
-    embedding_path = "C:/Users/Gonem/CodeProjects/seminar-ba-qm/Wallaart-HAABSA/data/externalData/glove.6B.50d.txt"
-    training_path = "C:/Users/Gonem/CodeProjects/seminar-ba-qm/Wallaart-HAABSA/data/externalData/absa-2015_restaurants_trial.xml"
-    data_path = "sem_trial_2015.csv"
-    embedding_dim = 50 # dependent on embedding data
+    embedding_path = "ExternalData/glove.6B.300d.txt"
+    training_path = "ExternalData/ABSA-15_Restaurants_Train_Final.xml"
+    data_path = "ExternalData/sem_train_2015.csv"
+    embedding_dim = 300 # dependent on embedding data
+
+
     
     lcr = LeftCenterRight(training_path, embedding_path, embedding_dim)
     lcr.compile(tf.keras.optimizers.SGD(), loss='categorical_crossentropy', run_eagerly=True) # TODO:run_eagerly off when done!
     left, target, right, polarity = utils.semeval_data(data_path)
     x_train = [left, target, right]
     y_train = polarity.astype('int64')
+
+    # import pandas as pd
+    # print(pd.DataFrame(polarity).dtype)
+    # print(pd.DataFrame(polarity).count())
 
     y_train = tf.one_hot(y_train, 3)
     

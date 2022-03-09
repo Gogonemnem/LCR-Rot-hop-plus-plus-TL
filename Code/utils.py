@@ -35,7 +35,7 @@ def semeval_to_csv(f_in: str, f_out: str):
                 sentiment = opinion.get('polarity')
                 if sentiment == "positive":
                     polarity = 1
-                elif sentiment == "conflict":
+                elif sentiment == "neutral":
                     polarity = 0
                 elif sentiment == "negative":
                     polarity = -1
@@ -78,17 +78,16 @@ def vocabulary_index(f_in: str):
 
 
 def main():
-    path = "C:/Users/Gonem/CodeProjects/seminar-ba-qm/Wallaart-HAABSA/data/externalData/absa-2015_restaurants_trial.xml"
-    embed_path = "C:/Users/Gonem/CodeProjects/seminar-ba-qm/Wallaart-HAABSA/data/externalData/glove.6B.50d.txt"
-    data_path = "sem_trial_2015.csv"
-    # semeval_to_csv(path, data_path)
-
+    embed_path = "ExternalData/glove.6B.300d.txt"
+    path = "ExternalData/ABSA-15_Restaurants_Train_Final.xml"
+    data_path = "ExternalData/sem_train_2015.csv"
+    semeval_to_csv(path, data_path)
 
     vectorizer, word_index = vocabulary_index(path)
     embeddings_index = load_pretrained_embeddings(embed_path)
 
     num_tokens = len(vectorizer.get_vocabulary()) + 2
-    embedding_dim = 50
+    embedding_dim = 300
     # hits = 0
     # misses = 0
 
