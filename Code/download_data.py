@@ -60,7 +60,7 @@ def semeval(year, folder_path: str="ExternalData"):
             file.extractall(path)
 
 def license_agreement():
-    if input("Do you agree with the license agreement from MS-NC-NoReD? ([Y]es/[N]o): ").lower() not in ('y', 'yes'):
+    if input("Do you agree with the license agreement from MS-NC-NoReD? http://www.meta-net.eu/meta-share/meta-share-licenses/META-SHARE%20NonCommercial%20NoRedistribution-v%201.0.pdf ([Y]es/[N]o): ").lower() not in ('y', 'yes'):
         raise ValueError("You did not agree to the license agreement")
 
 if __name__ == '__main__':
