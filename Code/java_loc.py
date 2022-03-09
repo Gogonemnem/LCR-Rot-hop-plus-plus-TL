@@ -16,7 +16,7 @@ def get_java_loc():
     location = subprocess.check_output(command, shell=True).strip()
     if not location:
         raise FileNotFoundError("Install java first!")
-    return location
+    return str(location, 'utf-8')
 
 if __name__ == "__main__":
     java_loc = get_java_loc()
