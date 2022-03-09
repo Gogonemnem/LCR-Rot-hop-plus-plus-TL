@@ -60,8 +60,11 @@ def semeval_data(f_in):
     return data.T.values
 
 
-def vocabulary_index(f_in: str):
+def vocabulary_index(f_in: str, vectorizer=None):
     from tensorflow.keras.layers import TextVectorization
+
+    if vectorizer is None:
+        vectorizer = TextVectorization(max_tokens=20000, output_sequence_length=200) # hyperparameters here
 
     root = ET.parse(f_in).getroot()
     samples = []
@@ -69,7 +72,6 @@ def vocabulary_index(f_in: str):
     for sentence in root.iter('sentence'):
         samples.append(sentence.find('text').text)
     
-    vectorizer = TextVectorization(max_tokens=20000, output_sequence_length=200) # hyperparameters here
     text_ds = tf.data.Dataset.from_tensor_slices(samples).batch(128)
     vectorizer.adapt(text_ds)
     voc = vectorizer.get_vocabulary()

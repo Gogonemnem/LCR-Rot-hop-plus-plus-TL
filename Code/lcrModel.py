@@ -1,29 +1,36 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Embedding, Bidirectional, LSTM, Softmax
+from tensorflow.keras.metrics import Precision, Recall
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
 
 import utils
 
 
 class LeftCenterRight(tf.keras.Model):
-    def __init__(self, training_path, embedding_path, embedding_dim):
+    def __init__(self, training_path, test_path, embedding_path, embedding_dim, invert=False, hop=1):
         super().__init__()
 
+        if hop < 0:
+            raise ValueError(f"The variable may not be lower than 0: {hop=}")
+
+        self.invert = invert
+        self.hop = hop
+
         self.embedding_dim = embedding_dim 
-        self.embedding = self.create_embedding_layer(training_path, embedding_path)
+        self.embedding = self.create_embedding_layer(training_path, test_path, embedding_path)
         
         hidden_units = embedding_dim # OMG I THOUGHT HEE JUST RANDOMLY SET IT TO 300
         self.left_bilstm = Bidirectional(LSTM(hidden_units, return_sequences=True))
         self.target_bilstm = Bidirectional(LSTM(hidden_units, return_sequences=True))
         self.right_bilstm = Bidirectional(LSTM(hidden_units, return_sequences=True))
         
-        self.target_pooling = AdaptiveAveragePooling1D(1)
+        self.average_pooling = AdaptiveAveragePooling1D(1)
         
-        self.attention_left = BilinearAttention()
-        self.attention_right = BilinearAttention()
-        self.attention_target_left = BilinearAttention()
-        self.attention_target_right = BilinearAttention()
+        self.attention_left = BilinearAttention(2*self.embedding_dim)
+        self.attention_right = BilinearAttention(2*self.embedding_dim)
+        self.attention_target_left = BilinearAttention(2*self.embedding_dim)
+        self.attention_target_right = BilinearAttention(2*self.embedding_dim)
 
         self.output_softmax = Softmax()
 
@@ -50,14 +57,25 @@ class LeftCenterRight(tf.keras.Model):
         target_bilstm = self.target_bilstm(embedded_target)
         right_bilstm = self.right_bilstm(embedded_right)
 
-        # pool_target shape: [batch, 2*embed_dim], squeeze otherwise [batch, 1, 2*embed_dim]
-        pool_target = tf.squeeze(self.target_pooling(target_bilstm))
+        # shape: [batch, 2*embed_dim], squeeze otherwise [batch, 1, 2*embed_dim]
+        representation_left = tf.squeeze(self.average_pooling(left_bilstm))
+        representation_right = tf.squeeze(self.average_pooling(right_bilstm))
+        representation_target_left = representation_target_right = tf.squeeze(self.average_pooling(target_bilstm))
+        
+        # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
+        for _ in range(self.hop):
+            if self.invert:
+                representation_target_left = self.attention_target_left([target_bilstm, representation_left])
+                representation_target_right = self.attention_target_right([target_bilstm, representation_right])
 
-        representation_left = self.attention_left([left_bilstm, pool_target])
-        representation_right = self.attention_right([right_bilstm, pool_target])
+                representation_left = self.attention_left([left_bilstm, representation_target_left])
+                representation_right = self.attention_right([right_bilstm, representation_target_right])
+            else:
+                representation_left = self.attention_left([left_bilstm, representation_target_left])
+                representation_right = self.attention_right([right_bilstm, representation_target_right])
 
-        representation_target_left = self.attention_target_left([left_bilstm, representation_left])
-        representation_target_right = self.attention_target_right([right_bilstm, representation_right])
+                representation_target_left = self.attention_target_left([target_bilstm, representation_left])
+                representation_target_right = self.attention_target_right([target_bilstm, representation_right])
 
         v = tf.concat([representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
         pred = self.output_softmax(v @ self.weight_matrix + self.bias)
@@ -65,8 +83,9 @@ class LeftCenterRight(tf.keras.Model):
 
 
     # only training path or also validation/test path?
-    def create_embedding_layer(self, training_path, embeddings_path):
-        self.vectorizer, word_index = utils.vocabulary_index(training_path)
+    def create_embedding_layer(self, training_path, test_path, embeddings_path):
+        vectorizer, _ = utils.vocabulary_index(training_path)
+        self.vectorizer, word_index = utils.vocabulary_index(test_path, vectorizer)
         embeddings_index = utils.load_pretrained_embeddings(embeddings_path)
         
         num_tokens = len(self.vectorizer.get_vocabulary()) + 2
@@ -87,12 +106,13 @@ class LeftCenterRight(tf.keras.Model):
         return embedding_layer
 
 class BilinearAttention(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, dim, **kwargs):
         super().__init__(**kwargs) # seed, scale can be given
+        self.dim = dim
 
     def build(self, input_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
-        self.weight_matrix = self.add_weight(name="att_weight", shape=(input_shape[-1][-1], input_shape[-1][-1]),
+        self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, self.dim),
                            initializer="glorot_uniform", trainable=True)
         self.bias = self.add_weight(name="att_bias", shape=(1, ),
                            initializer="glorot_uniform", trainable=True)
@@ -125,29 +145,35 @@ class BilinearAttention(tf.keras.layers.Layer):
 
 def main():
     embedding_path = "ExternalData/glove.6B.300d.txt"
-    training_path = "ExternalData/ABSA-15_Restaurants_Train_Final.xml"
-    data_path = "ExternalData/sem_train_2015.csv"
+    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
+    
     embedding_dim = 300 # dependent on embedding data
 
+    train_data_path = "ExternalData/sem_train_2015.csv"
+    test_data_path = "ExternalData/sem_test_2015.csv"
+    utils.semeval_to_csv(training_path, train_data_path)
+    utils.semeval_to_csv(validation_path, test_data_path)
 
     
-    lcr = LeftCenterRight(training_path, embedding_path, embedding_dim)
-    lcr.compile(tf.keras.optimizers.SGD(), loss='categorical_crossentropy', run_eagerly=True) # TODO:run_eagerly off when done!
-    left, target, right, polarity = utils.semeval_data(data_path)
+    lcr = LeftCenterRight(training_path, validation_path, embedding_path, embedding_dim)
+    lcr.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=['acc'], run_eagerly=False) # TODO:run_eagerly off when done!
+    
+    left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
-    y_train = polarity.astype('int64')
+    y_train = tf.one_hot(polarity.astype('int64'), 3)
 
-    # import pandas as pd
-    # print(pd.DataFrame(polarity).dtype)
-    # print(pd.DataFrame(polarity).count())
+    left, target, right, polarity = utils.semeval_data(test_data_path)
+    x_test = [left, target, right]
+    y_test = tf.one_hot(polarity.astype('int64'), 3)
+    # y_test = polarity.astype('int64')
+    
+    lcr.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=1)
+    # print(lcr.summary())
 
-    y_train = tf.one_hot(y_train, 3)
-    
-    lcr.fit(x_train, y_train)
-    print(lcr.summary())
+    predictions = lcr.predict(x_test)
+    print(predictions)
 
-    
-    
 
 if __name__ == '__main__':
     # import logging
