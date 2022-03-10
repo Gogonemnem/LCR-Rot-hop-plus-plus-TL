@@ -8,7 +8,8 @@ import utils
 
 
 class LeftCenterRight(tf.keras.Model):
-    def __init__(self, training_path, test_path, embedding_path, embedding_dim, invert=False, hop=1):
+    # hierarchy is tuple of size 2: 1st dim determines combining, 2nd dim determines iterative
+    def __init__(self, training_path, test_path, embedding_path, embedding_dim, invert=False, hop=1, hierarchy: tuple=None):
         super().__init__()
 
         if hop < 0:
@@ -16,6 +17,7 @@ class LeftCenterRight(tf.keras.Model):
 
         self.invert = invert
         self.hop = hop
+        self.hierarchy = hierarchy
 
         self.embedding_dim = embedding_dim 
         self.embedding = self.create_embedding_layer(training_path, test_path, embedding_path)
@@ -31,6 +33,14 @@ class LeftCenterRight(tf.keras.Model):
         self.attention_right = BilinearAttention(2*self.embedding_dim)
         self.attention_target_left = BilinearAttention(2*self.embedding_dim)
         self.attention_target_right = BilinearAttention(2*self.embedding_dim)
+
+        if hierarchy is not None:
+            if hierarchy[0]: # combine all
+                self.hierarchical = HierarchicalAttention(2*self.embedding_dim)
+            else: # separate inner & outer
+                self.hierarchical_inner = HierarchicalAttention(2*self.embedding_dim)
+                self.hierarchical_outer = HierarchicalAttention(2*self.embedding_dim)
+
 
         self.output_softmax = Softmax()
 
@@ -63,6 +73,7 @@ class LeftCenterRight(tf.keras.Model):
         representation_target_left = representation_target_right = tf.squeeze(self.average_pooling(target_bilstm))
         
         # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
+        # implementing all combinations of inverse, hop & 4 implementations of hierachical attention made this part kind of unreadable
         for _ in range(self.hop):
             if self.invert:
                 representation_target_left = self.attention_target_left([target_bilstm, representation_left])
@@ -70,12 +81,37 @@ class LeftCenterRight(tf.keras.Model):
 
                 representation_left = self.attention_left([left_bilstm, representation_target_left])
                 representation_right = self.attention_right([right_bilstm, representation_target_right])
+
+                
             else:
                 representation_left = self.attention_left([left_bilstm, representation_target_left])
                 representation_right = self.attention_right([right_bilstm, representation_target_right])
 
                 representation_target_left = self.attention_target_left([target_bilstm, representation_left])
                 representation_target_right = self.attention_target_right([target_bilstm, representation_right])
+            
+            if self.hierarchy is not None and self.hierarchy[1]: # iterate
+                if self.hierarchy[0]: # combine all
+                    representations = tf.stack([representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
+                    representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(self.hierarchical(representations), axis=1)
+                else: # separate inner & outer
+                    representations = tf.stack([representation_left, representation_right], axis=1)
+                    representation_left, representation_right = tf.unstack(self.hierarchical_outer(representations), axis=1)
+
+                    representations = tf.stack([representation_target_left, representation_target_right], axis=1)
+                    representation_target_left, representation_target_right = tf.unstack(self.hierarchical_inner(representations), axis=1)
+
+        if self.hierarchy is not None and not self.hierarchy[1]: # don´t iterate
+            if self.hierarchy[0]: # combine all
+                representations = tf.stack([representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
+                representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(self.hierarchical(representations), axis=1)
+            else: # separate inner & outer
+                representations = tf.stack([representation_left, representation_right], axis=1)
+                representation_left, representation_right = tf.unstack(self.hierarchical_outer(representations), axis=1)
+
+                representations = tf.stack([representation_target_left, representation_target_right], axis=1)
+                representation_target_left, representation_target_right = tf.unstack(self.hierarchical_inner(representations), axis=1)
+
 
         v = tf.concat([representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
         pred = self.output_softmax(v @ self.weight_matrix + self.bias)
@@ -123,7 +159,7 @@ class BilinearAttention(tf.keras.layers.Layer):
         hidden, pool_target = inputs[0], inputs[1]
         length = tf.shape(hidden)[1]
 
-        # sizes: batch x L x 1 = batch x L x 2d @ 2d x 2d @ 2d x 1
+        # sizes: batch x L x 1 = batch x L x 2d @ 2d x 2d @ batch x 2d x 1
         # first_term = hidden @ self.weight_matrix @ pool_target
         first_term = tf.einsum('bik, bk -> bi', hidden @ self.weight_matrix, pool_target)
         # sizes: batch x L x 1 = 1 x 1 * batch x L x 1
@@ -135,6 +171,38 @@ class BilinearAttention(tf.keras.layers.Layer):
         # basically hidden^T @ alpha, but these are 3 dimensional tensors
         r = tf.einsum('bki,bk->bi', hidden, alpha)
         return r
+
+    def get_config(self):
+        # config = {'use_scale': self.use_scale}
+        base_config = super().get_config()
+        return base_config
+        # return dict(list(base_config.items()) + list(config.items()))
+
+class HierarchicalAttention(tf.keras.layers.Layer):
+    def __init__(self, dim, **kwargs):
+        super().__init__(**kwargs) 
+        self.dim = dim
+
+    def build(self, input_shape):
+        # TODO: modify tweaking params!!!! for example regulizer = l2
+        self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, 1),
+                           initializer="glorot_uniform", trainable=True)
+        self.bias = self.add_weight(name="att_bias", shape=(1, ),
+                           initializer="glorot_uniform", trainable=True)
+
+        return super().build(input_shape)
+
+    def call(self, representations):
+        length = tf.shape(representations)[1]
+
+        first_term = representations @ self.weight_matrix
+        second_term = self.bias * tf.ones([length, 1]) # , 1 needed bc tensorflow weird
+
+        func = tf.keras.activations.tanh(first_term + second_term)
+        alpha = tf.keras.activations.softmax(func)
+
+        representations *= alpha
+        return representations
 
     def get_config(self):
         # config = {'use_scale': self.use_scale}
@@ -156,8 +224,8 @@ def main():
     utils.semeval_to_csv(validation_path, test_data_path)
 
     
-    lcr = LeftCenterRight(training_path, validation_path, embedding_path, embedding_dim)
-    lcr.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=['acc'], run_eagerly=False) # TODO:run_eagerly off when done!
+    lcr = LeftCenterRight(training_path, validation_path, embedding_path, embedding_dim, hierarchy=(0, 0))
+    lcr.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=['acc'], run_eagerly=True) # TODO:run_eagerly off when done!
     
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
