@@ -7,7 +7,7 @@ from tensorflow_addons.layers import AdaptiveAveragePooling1D
 import utils
 
 
-class LeftCenterRight(tf.keras.Model):
+class HAABSA(tf.keras.Model):
     # hierarchy is tuple of size 2: 1st dim determines combining, 2nd dim determines iterative
     def __init__(self, training_path, test_path, embedding_path, embedding_dim, invert=False, hop=1, hierarchy: tuple=None):
         super().__init__()
@@ -224,8 +224,8 @@ def main():
     utils.semeval_to_csv(validation_path, test_data_path)
 
     
-    lcr = LeftCenterRight(training_path, validation_path, embedding_path, embedding_dim, hierarchy=(0, 0))
-    lcr.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=['acc'], run_eagerly=True) # TODO:run_eagerly off when done!
+    haabsa = HAABSA(training_path, validation_path, embedding_path, embedding_dim, hierarchy=(0, 0))
+    haabsa.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=['acc'], run_eagerly=True) # TODO:run_eagerly off when done!
     
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
@@ -236,10 +236,10 @@ def main():
     y_test = tf.one_hot(polarity.astype('int64'), 3)
     # y_test = polarity.astype('int64')
     
-    lcr.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=1)
-    # print(lcr.summary())
+    haabsa.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=1)
+    # print(haabsa.summary())
 
-    predictions = lcr.predict(x_test)
+    predictions = haabsa.predict(x_test)
     print(predictions)
 
 
