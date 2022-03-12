@@ -20,8 +20,8 @@ class HAABSA(tf.keras.Model):
         self.hop = hop
         self.hierarchy = hierarchy
 
-        # self.embedding = self.create_embedding_layer(training_path, test_path, embedding_path)
-        self.embedding = GloveEmbedding(embedding_path, [training_path, test_path])
+        self.embedding = GloveEmbedding(
+            embedding_path, [training_path, test_path])
         # self.embedding = BERTEmbedding()
         self.embedding_dim = self.embedding.embedding_dim
 
@@ -59,12 +59,14 @@ class HAABSA(tf.keras.Model):
         # self.bias = self.add_weight(name="bias", shape=(3, ),
         #                    initializer="glorot_uniform", trainable=True)
 
-        super().build(inputs_shape)
+        # super().build(inputs_shape)
+        pass
 
     def call(self, inputs):
-        # embedding is not trainable, thus you can use it again
         input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
 
+        ##### Embedding & BiLSTMs
+        # embedding is not trainable, thus you can use it again
         embedded_left = self.embedding(input_left)
         left_bilstm = self.left_bilstm(embedded_left)
 
@@ -74,78 +76,80 @@ class HAABSA(tf.keras.Model):
         embedded_right = self.embedding(input_right)
         right_bilstm = self.right_bilstm(embedded_right)
 
+        ##### Representations
         # shape: [batch, 2*embed_dim], squeeze otherwise [batch, 1, 2*embed_dim]
-        representation_left = tf.squeeze(self.average_pooling(left_bilstm))
-        representation_right = tf.squeeze(self.average_pooling(right_bilstm))
         representation_target_left = representation_target_right = tf.squeeze(
             self.average_pooling(target_bilstm))
 
+        ##############################################################################################
+        ########## I took some creative liberty here and changed this part of the model     ##########
+        ########## It may not improve the model, but it is easier to program the iterations ##########
+        ########## Drawing the diagram though, not so much                                  ##########
+        ##############################################################################################
+        representation_left = tf.squeeze(self.average_pooling(left_bilstm))
+        representation_right = tf.squeeze(self.average_pooling(right_bilstm))
+
         # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
-        # implementing all combinations of inverse, hop & 4 implementations of hierachical attention made this part kind of unreadable
-        for i in range(self.hop):
-            if self.invert:
-                representation_target_left = self.attention_target_left(
-                    [target_bilstm, representation_left])
-                representation_target_right = self.attention_target_right(
-                    [target_bilstm, representation_right])
+        for _ in range(self.hop):
+            if self.hierarchy is not None and self.hierarchy[1]:
+                representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
+                    representation_left, representation_target_left, representation_target_right, representation_right)
 
-                representation_left = self.attention_left(
-                    [left_bilstm, representation_target_left])
-                representation_right = self.attention_right(
-                    [right_bilstm, representation_target_right])
+            representation_left, representation_target_left, representation_target_right, representation_right = self._apply_bilinear_attention(
+                left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right)
 
-            else:
-                representation_left = self.attention_left(
-                    [left_bilstm, representation_target_left])
-                representation_right = self.attention_right(
-                    [right_bilstm, representation_target_right])
+        # if this similar line is UNDER `_apply_bilinear_attention()`, then add the CHECK for [0], otherwise doubly applied
+        # if this similar line is ABOVE `_apply_bilinear_attention()`, the model of trusca is slightly changed, but DON´T CHECK for [0]!
+        if self.hierarchy is not None:  # and not self.hierarchy[0]
+            representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
+                representation_left, representation_target_left, representation_target_right, representation_right)
 
-                representation_target_left = self.attention_target_left(
-                    [target_bilstm, representation_left])
-                representation_target_right = self.attention_target_right(
-                    [target_bilstm, representation_right])
-
-            if self.hierarchy is not None and self.hierarchy[1]:  # iterate
-                if self.hierarchy[0]:  # combine all
-                    representations = tf.stack(
-                        [representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
-                    representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(
-                        self.hierarchical(representations), axis=1)
-                else:  # separate inner & outer
-                    representations = tf.stack(
-                        [representation_left, representation_right], axis=1)
-                    representation_left, representation_right = tf.unstack(
-                        self.hierarchical_outer(representations), axis=1)
-
-                    representations = tf.stack(
-                        [representation_target_left, representation_target_right], axis=1)
-                    representation_target_left, representation_target_right = tf.unstack(
-                        self.hierarchical_inner(representations), axis=1)
-
-        # don´t iterate
-        if self.hierarchy is not None and not self.hierarchy[1]:
-            if self.hierarchy[0]:  # combine all
-                representations = tf.stack(
-                    [representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
-                representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(
-                    self.hierarchical(representations), axis=1)
-            else:  # separate inner & outer
-                representations = tf.stack(
-                    [representation_left, representation_right], axis=1)
-                representation_left, representation_right = tf.unstack(
-                    self.hierarchical_outer(representations), axis=1)
-
-                representations = tf.stack(
-                    [representation_target_left, representation_target_right], axis=1)
-                representation_target_left, representation_target_right = tf.unstack(
-                    self.hierarchical_inner(representations), axis=1)
-
+        ##### MLP, why is it called MLP btw? I don´t think it should be.
         v = tf.concat([representation_left, representation_target_left,
                       representation_target_right, representation_right], axis=1)
 
         pred = self.probabilities(v)
-        # pred = self.output_softmax(v @ self.weight_matrix + self.bias) # Not sure if the previous line is equal
+        # Not sure if the previous line is equal
+        # pred = self.output_softmax(v @ self.weight_matrix + self.bias) 
         return pred
+
+    def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
+        if self.invert:
+            representation_target_left = self.attention_target_left(
+                [target_bilstm, representation_left])
+            representation_target_right = self.attention_target_right(
+                [target_bilstm, representation_right])
+
+        representation_left = self.attention_left(
+            [left_bilstm, representation_target_left])
+        representation_right = self.attention_right(
+            [right_bilstm, representation_target_right])
+
+        if not self.invert:
+            representation_target_left = self.attention_target_left(
+                [target_bilstm, representation_left])
+            representation_target_right = self.attention_target_right(
+                [target_bilstm, representation_right])
+
+        return representation_left, representation_target_left, representation_target_right, representation_right
+
+    def _apply_hierarchical_attention(self, representation_left, representation_target_left, representation_target_right, representation_right):
+        if self.hierarchy[0]:  # combine all
+            representations = tf.stack(
+                [representation_left, representation_target_left, representation_target_right, representation_right], axis=1)
+            representation_left, representation_target_left, representation_target_right, representation_right = tf.unstack(
+                self.hierarchical(representations), axis=1)
+        else:  # separate inner & outer
+            representations = tf.stack(
+                [representation_left, representation_right], axis=1)
+            representation_left, representation_right = tf.unstack(
+                self.hierarchical_outer(representations), axis=1)
+
+            representations = tf.stack(
+                [representation_target_left, representation_target_right], axis=1)
+            representation_target_left, representation_target_right = tf.unstack(
+                self.hierarchical_inner(representations), axis=1)
+        return representation_left, representation_target_left, representation_target_right, representation_right
 
 
 def main():
@@ -158,11 +162,7 @@ def main():
     utils.semeval_to_csv(training_path, train_data_path)
     utils.semeval_to_csv(validation_path, test_data_path)
 
-    haabsa = HAABSA(training_path, validation_path,
-                    embedding_path, hierarchy=(0, 0))
-    haabsa.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=[
-                   'acc'], run_eagerly=True)  # TODO:run_eagerly off when done!
-
+    ##### Data processing
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
     y_train = tf.one_hot(polarity.astype('int64'), 3)
@@ -170,6 +170,13 @@ def main():
     left, target, right, polarity = utils.semeval_data(test_data_path)
     x_test = [left, target, right]
     y_test = tf.one_hot(polarity.astype('int64'), 3)
+
+
+    ##### Model call
+    haabsa = HAABSA(training_path, validation_path,
+                    embedding_path, hierarchy=(1, 1))
+    haabsa.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=[
+                   'acc'], run_eagerly=True)  # TODO:run_eagerly off when done!
 
     haabsa.fit(x_train, y_train, validation_data=(
         x_test, y_test), epochs=1)  # , batch_size=5)
