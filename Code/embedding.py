@@ -9,18 +9,16 @@ class Embedding(tf.keras.layers.Layer):
     def __init__(self, embedding_dim, *args, **kwargs):
         # ensure you have a embedding_dim
         self.embedding_dim = embedding_dim
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
 class GloveEmbedding(Embedding):
     def __init__(self, glove_file, vocab_files):
         embedding_dim = 300 # TODO: Make modifiable for other gloves
+        super().__init__(embedding_dim)
+
         self.glove_file = glove_file
         self.vocab_files = vocab_files
         self.embeddings_index = utils.load_pretrained_embeddings(glove_file)
-
-        super().__init__(embedding_dim)
-
-    def build(self, input_shape):
         self.vectorizer = None
         
         for vocab_file in self.vocab_files:
@@ -39,6 +37,8 @@ class GloveEmbedding(Embedding):
                 # no idea what oov is though
                 embedding_matrix[i] = embedding_vector
         self.embedding = tf.keras.layers.Embedding(num_tokens, self.embedding_dim, embeddings_initializer=tf.keras.initializers.Constant(embedding_matrix), trainable=False)
+
+    def build(self, input_shape):
         super().build(input_shape)
 
     def call(self, inputs):

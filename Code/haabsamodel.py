@@ -1,3 +1,4 @@
+from logging import exception
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Softmax, Dense, Activation
@@ -76,18 +77,20 @@ class HAABSA(tf.keras.Model):
         embedded_right = self.embedding(input_right)
         right_bilstm = self.right_bilstm(embedded_right)
 
-        ##### Representations
+        # Representations
         # shape: [batch, 2*embed_dim], squeeze otherwise [batch, 1, 2*embed_dim]
-        representation_target_left = representation_target_right = tf.squeeze(
-            self.average_pooling(target_bilstm))
+        # squeeze doesn't work for run_eagerly=False, spent too much time on this...
+        # maybe change code to work with shape: [batch, 1, 2*embed_dim]?
+        representation_target_left = representation_target_right = self.average_pooling(
+            target_bilstm)[:, 0, :]
 
         ##############################################################################################
         ########## I took some creative liberty here and changed this part of the model     ##########
         ########## It may not improve the model, but it is easier to program the iterations ##########
         ########## Drawing the diagram though, not so much                                  ##########
         ##############################################################################################
-        representation_left = tf.squeeze(self.average_pooling(left_bilstm))
-        representation_right = tf.squeeze(self.average_pooling(right_bilstm))
+        representation_left = self.average_pooling(left_bilstm)[:, 0, :]
+        representation_right = self.average_pooling(right_bilstm)[:, 0, :]
 
         # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
         for _ in range(self.hop):
@@ -104,13 +107,13 @@ class HAABSA(tf.keras.Model):
             representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
                 representation_left, representation_target_left, representation_target_right, representation_right)
 
-        ##### MLP, why is it called MLP btw? I don´t think it should be.
+        # MLP, why is it called MLP btw? I don´t think it should be.
         v = tf.concat([representation_left, representation_target_left,
                       representation_target_right, representation_right], axis=1)
 
         pred = self.probabilities(v)
         # Not sure if the previous line is equal
-        # pred = self.output_softmax(v @ self.weight_matrix + self.bias) 
+        # pred = self.output_softmax(v @ self.weight_matrix + self.bias)
         return pred
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
@@ -162,7 +165,7 @@ def main():
     utils.semeval_to_csv(training_path, train_data_path)
     utils.semeval_to_csv(validation_path, test_data_path)
 
-    ##### Data processing
+    # Data processing
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
     y_train = tf.one_hot(polarity.astype('int64'), 3)
@@ -171,15 +174,14 @@ def main():
     x_test = [left, target, right]
     y_test = tf.one_hot(polarity.astype('int64'), 3)
 
-
-    ##### Model call
+    # Model call
     haabsa = HAABSA(training_path, validation_path,
                     embedding_path, hierarchy=(1, 1))
     haabsa.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=[
-                   'acc'], run_eagerly=True)  # TODO:run_eagerly off when done!
+                   'acc'], run_eagerly=False)  # TODO:run_eagerly off when done!
 
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=1)  # , batch_size=5)
+        x_test, y_test), epochs=1, batch_size=32)
     # print(haabsa.summary())
 
     predictions = haabsa.predict(x_test)
