@@ -1,11 +1,7 @@
-from logging import exception
-import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.layers import Bidirectional, LSTM, Softmax, Dense, Activation
+from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
-from sklearn.preprocessing import OneHotEncoder
-
 import utils
 from embedding import GloveEmbedding, BERTEmbedding
 from attention import BilinearAttention, HierarchicalAttention
@@ -38,21 +34,27 @@ class HAABSA(tf.keras.Model):
 
         self.average_pooling = AdaptiveAveragePooling1D(1)
 
-        self.attention_left = BilinearAttention(2*self.embedding_dim, regularizer)
-        self.attention_right = BilinearAttention(2*self.embedding_dim, regularizer)
-        self.attention_target_left = BilinearAttention(2*self.embedding_dim, regularizer)
-        self.attention_target_right = BilinearAttention(2*self.embedding_dim, regularizer)
+        self.attention_left = BilinearAttention(
+            2*self.embedding_dim, regularizer)
+        self.attention_right = BilinearAttention(
+            2*self.embedding_dim, regularizer)
+        self.attention_target_left = BilinearAttention(
+            2*self.embedding_dim, regularizer)
+        self.attention_target_right = BilinearAttention(
+            2*self.embedding_dim, regularizer)
 
         if hierarchy is not None:
             if hierarchy[0]:  # combine all
-                self.hierarchical = HierarchicalAttention(2*self.embedding_dim, regularizer)
+                self.hierarchical = HierarchicalAttention(
+                    2*self.embedding_dim, regularizer)
             else:  # separate inner & outer
                 self.hierarchical_inner = HierarchicalAttention(
                     2*self.embedding_dim, regularizer)
                 self.hierarchical_outer = HierarchicalAttention(
                     2*self.embedding_dim, regularizer)
 
-        self.probabilities = Dense(3, Activation('softmax'), kernel_regularizer=regularizer, bias_regularizer=regularizer)
+        self.probabilities = Dense(3, Activation(
+            'softmax'), kernel_regularizer=regularizer, bias_regularizer=regularizer)
 
     def build(self, inputs_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
@@ -171,7 +173,7 @@ def main():
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
     y_train = tf.one_hot(polarity+1, 3)
-    
+
     # print(y_train)
     # pd.DataFrame(y_train).to_csv('y_train.csv')
 
