@@ -1,8 +1,10 @@
 from logging import exception
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Softmax, Dense, Activation
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
+from sklearn.preprocessing import OneHotEncoder
 
 import utils
 from embedding import GloveEmbedding, BERTEmbedding
@@ -11,7 +13,7 @@ from attention import BilinearAttention, HierarchicalAttention
 
 class HAABSA(tf.keras.Model):
     # hierarchy is tuple of size 2: 1st dim determines combining, 2nd dim determines iterative
-    def __init__(self, training_path, test_path, embedding_path, invert=False, hop=1, hierarchy: tuple = None):
+    def __init__(self, training_path, test_path, embedding_path, invert=False, hop=1, hierarchy: tuple = None, regularizer=None):
         super().__init__()
 
         if hop < 0:
@@ -21,9 +23,9 @@ class HAABSA(tf.keras.Model):
         self.hop = hop
         self.hierarchy = hierarchy
 
-        self.embedding = GloveEmbedding(
-            embedding_path, [training_path, test_path])
-        # self.embedding = BERTEmbedding()
+        # self.embedding = GloveEmbedding(
+        #     embedding_path, [training_path, test_path])
+        self.embedding = BERTEmbedding()
         self.embedding_dim = self.embedding.embedding_dim
 
         hidden_units = self.embedding_dim  # OMG I THOUGHT HEE JUST RANDOMLY SET IT TO 300
@@ -36,21 +38,21 @@ class HAABSA(tf.keras.Model):
 
         self.average_pooling = AdaptiveAveragePooling1D(1)
 
-        self.attention_left = BilinearAttention(2*self.embedding_dim)
-        self.attention_right = BilinearAttention(2*self.embedding_dim)
-        self.attention_target_left = BilinearAttention(2*self.embedding_dim)
-        self.attention_target_right = BilinearAttention(2*self.embedding_dim)
+        self.attention_left = BilinearAttention(2*self.embedding_dim, regularizer)
+        self.attention_right = BilinearAttention(2*self.embedding_dim, regularizer)
+        self.attention_target_left = BilinearAttention(2*self.embedding_dim, regularizer)
+        self.attention_target_right = BilinearAttention(2*self.embedding_dim, regularizer)
 
         if hierarchy is not None:
             if hierarchy[0]:  # combine all
-                self.hierarchical = HierarchicalAttention(2*self.embedding_dim)
+                self.hierarchical = HierarchicalAttention(2*self.embedding_dim, regularizer)
             else:  # separate inner & outer
                 self.hierarchical_inner = HierarchicalAttention(
-                    2*self.embedding_dim)
+                    2*self.embedding_dim, regularizer)
                 self.hierarchical_outer = HierarchicalAttention(
-                    2*self.embedding_dim)
+                    2*self.embedding_dim, regularizer)
 
-        self.probabilities = Dense(3, Activation('softmax'))
+        self.probabilities = Dense(3, Activation('softmax'), kernel_regularizer=regularizer, bias_regularizer=regularizer)
 
     def build(self, inputs_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
@@ -168,17 +170,25 @@ def main():
     # Data processing
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
-    y_train = tf.one_hot(polarity.astype('int64'), 3)
+    y_train = tf.one_hot(polarity+1, 3)
+    
+    # print(y_train)
+    # pd.DataFrame(y_train).to_csv('y_train.csv')
 
     left, target, right, polarity = utils.semeval_data(test_data_path)
     x_test = [left, target, right]
-    y_test = tf.one_hot(polarity.astype('int64'), 3)
+    y_test = tf.one_hot(polarity+1, 3)
+
+    # Specify loss function
+    # loss='categorical_crossentropy' does not work properly, not properly scaled to regulizers
+    cce = tf.keras.losses.CategoricalCrossentropy(
+        reduction=tf.keras.losses.Reduction.SUM)
 
     # Model call
     haabsa = HAABSA(training_path, validation_path,
-                    embedding_path, hierarchy=(1, 1))
-    haabsa.compile(tf.keras.optimizers.SGD(),  loss='categorical_crossentropy', metrics=[
-                   'acc'], run_eagerly=False)  # TODO:run_eagerly off when done!
+                    embedding_path, hop=1, hierarchy=None, regularizer='l1_l2')
+    haabsa.compile(tf.keras.optimizers.SGD(),  loss=cce, metrics=[
+                   'categorical_accuracy'], run_eagerly=False)  # TODO:run_eagerly off when done!
 
     haabsa.fit(x_train, y_train, validation_data=(
         x_test, y_test), epochs=1, batch_size=32)
@@ -186,6 +196,7 @@ def main():
 
     predictions = haabsa.predict(x_test)
     print(predictions)
+    pd.DataFrame(predictions).to_csv('predictions.csv')
 
 
 if __name__ == '__main__':

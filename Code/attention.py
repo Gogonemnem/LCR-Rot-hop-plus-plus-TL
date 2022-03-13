@@ -5,18 +5,19 @@ from tensorflow.keras.layers import Softmax, Activation
 
 
 class BilinearAttention(tf.keras.layers.Layer):
-    def __init__(self, dim, **kwargs):
+    def __init__(self, dim, regularizer, **kwargs):
         super().__init__(**kwargs)
         self.dim = dim
+        self.regularizer = regularizer
         self.tanh = Activation('tanh')
         self.softmax = Softmax(axis=1)
 
     def build(self, input_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, self.dim),
-                                             initializer="glorot_uniform", trainable=True)
+                                             initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
         self.bias = self.add_weight(name="att_bias", shape=(1, ),
-                                    initializer="glorot_uniform", trainable=True)
+                                    initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
 
         return super().build(input_shape)
 
@@ -46,18 +47,19 @@ class BilinearAttention(tf.keras.layers.Layer):
 
 
 class HierarchicalAttention(tf.keras.layers.Layer):
-    def __init__(self, dim, **kwargs):
+    def __init__(self, dim, regularizer, **kwargs):
         super().__init__(**kwargs)
         self.dim = dim
+        self.regularizer = regularizer
         self.tanh = Activation('tanh')
         self.softmax = Softmax(axis=1)
 
     def build(self, input_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, 1),
-                                             initializer="glorot_uniform", trainable=True)
+                                             initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
         self.bias = self.add_weight(name="att_bias", shape=(1, ),
-                                    initializer="glorot_uniform", trainable=True)
+                                    initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
 
         return super().build(input_shape)
 
