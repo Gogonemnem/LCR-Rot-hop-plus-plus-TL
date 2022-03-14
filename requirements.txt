@@ -3,5 +3,4 @@ pandas
 tensorflow
 tensorflow-addons
 
-transformers
 sentencepiece
