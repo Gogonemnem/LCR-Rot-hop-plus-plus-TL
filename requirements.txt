@@ -3,5 +3,6 @@ pandas
 tensorflow
 tensorflow-addons
 
-transformers
-sentencepiece
+# maybe needed in the future, huggingface makes some nice pretrained models
+#transformers
+#sentencepiece
