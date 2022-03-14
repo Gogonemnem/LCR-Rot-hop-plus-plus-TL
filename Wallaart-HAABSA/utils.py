@@ -28,7 +28,7 @@ def load_word_id_mapping(word_id_file, encoding='utf8'):
 
 
 def load_w2v(w2v_file, embedding_dim, is_skip=False):
-    fp = open(w2v_file)
+    fp = open(w2v_file, encoding='cp1252')
     if is_skip:
         fp.readline()
     w2v = []
@@ -117,7 +117,7 @@ def load_inputs_twitter(input_file, word_id_file, sentence_len, type_='', is_r=T
     tar_len = []
     all_target, all_sent, all_y = [], [], []
     # read in txt file
-    lines = open(input_file).readlines()
+    lines = open(input_file, encoding='cp1252').readlines()
     for i in range(0, len(lines), 3):
         # targets
         words = lines[i + 1].lower().split()

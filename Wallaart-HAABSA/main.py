@@ -11,6 +11,7 @@ import cabascModel
 import svmModel
 from OntologyReasoner import OntReasoner
 from loadData import *
+tf.enable_eager_execution()
 
 #import parameter configuration and data paths
 from config import *

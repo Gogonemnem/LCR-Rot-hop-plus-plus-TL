@@ -175,7 +175,7 @@ def main(train_path, test_path, accuracyOnt, test_size, remaining_size, learning
         max_ty, max_py = None, None
         max_prob = None
         step = None
-        for i in range(FLAGS.n_iter):
+        for i in range(1):#FLAGS.n_iter):
             trainacc, traincnt = 0., 0
             for train, numtrain in get_batch_data(tr_x, tr_sen_len, tr_x_bw, tr_sen_len_bw, tr_y, tr_target_word, tr_tar_len,
                                            FLAGS.batch_size, keep_prob, keep_prob):

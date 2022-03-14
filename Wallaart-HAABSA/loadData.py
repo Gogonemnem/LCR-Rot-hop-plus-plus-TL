@@ -59,7 +59,7 @@ def loadAverageSentence(config,sentences,pre_trained_context):
 
 def getStatsFromFile(path):
     polarity_vector= []
-    with open(path, "r") as fd:
+    with open(path, "r",encoding='cp1252') as fd:
         lines = fd.read().splitlines()
         size = len(lines)/3
         for i in range(0, len(lines), 3):
