@@ -28,28 +28,28 @@ tf.app.flags.DEFINE_string('is_r', '1', 'prob')
 tf.app.flags.DEFINE_integer('max_target_len', 19, 'max target length')
 
 # traindata, testdata adn embeddings
-tf.app.flags.DEFINE_string("train_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'traindata'+str(FLAGS.year)+".txt", "train data path")
-tf.app.flags.DEFINE_string("test_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'testdata'+str(FLAGS.year)+".txt", "formatted test data path")
-tf.app.flags.DEFINE_string("embedding_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'embedding'+str(FLAGS.year)+".txt", "pre-trained glove vectors file path")
-tf.app.flags.DEFINE_string("remaining_test_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'remainingtestdata'+str(FLAGS.year)+".txt", "formatted remaining test data path after ontology")
+tf.app.flags.DEFINE_string("train_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'traindata'+str(FLAGS.year)+".txt", "train data path")
+tf.app.flags.DEFINE_string("test_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'testdata'+str(FLAGS.year)+".txt", "formatted test data path")
+tf.app.flags.DEFINE_string("embedding_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'embedding'+str(FLAGS.year)+".txt", "pre-trained glove vectors file path")
+tf.app.flags.DEFINE_string("remaining_test_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'remainingtestdata'+str(FLAGS.year)+".txt", "formatted remaining test data path after ontology")
 
 #svm traindata, svm testdata
-tf.app.flags.DEFINE_string("train_svm_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'trainsvmdata'+str(FLAGS.year)+".txt", "train data path")
-tf.app.flags.DEFINE_string("test_svm_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'testsvmdata'+str(FLAGS.year)+".txt", "formatted test data path")
-tf.app.flags.DEFINE_string("remaining_svm_test_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'remainingsvmtestdata'+str(FLAGS.year)+".txt", "formatted remaining test data path after ontology")
+tf.app.flags.DEFINE_string("train_svm_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'trainsvmdata'+str(FLAGS.year)+".txt", "train data path")
+tf.app.flags.DEFINE_string("test_svm_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'testsvmdata'+str(FLAGS.year)+".txt", "formatted test data path")
+tf.app.flags.DEFINE_string("remaining_svm_test_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'remainingsvmtestdata'+str(FLAGS.year)+".txt", "formatted remaining test data path after ontology")
 
 #hyper traindata, hyper testdata
-tf.app.flags.DEFINE_string("hyper_train_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hypertraindata'+str(FLAGS.year)+".txt", "hyper train data path")
-tf.app.flags.DEFINE_string("hyper_eval_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hyperevaldata'+str(FLAGS.year)+".txt", "hyper eval data path")
+tf.app.flags.DEFINE_string("hyper_train_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hypertraindata'+str(FLAGS.year)+".txt", "hyper train data path")
+tf.app.flags.DEFINE_string("hyper_eval_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hyperevaldata'+str(FLAGS.year)+".txt", "hyper eval data path")
 
-tf.app.flags.DEFINE_string("hyper_svm_train_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hypertrainsvmdata'+str(FLAGS.year)+".txt", "hyper train svm data path")
-tf.app.flags.DEFINE_string("hyper_svm_eval_path", "data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hyperevalsvmdata'+str(FLAGS.year)+".txt", "hyper eval svm data path")
+tf.app.flags.DEFINE_string("hyper_svm_train_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hypertrainsvmdata'+str(FLAGS.year)+".txt", "hyper train svm data path")
+tf.app.flags.DEFINE_string("hyper_svm_eval_path", "Wallaart-HAABSA/data/programGeneratedData/"+str(FLAGS.embedding_dim)+'hyperevalsvmdata'+str(FLAGS.year)+".txt", "hyper eval svm data path")
 
 #external data sources
-tf.app.flags.DEFINE_string("pretrain_file", "data/externalData/glove.42B."+str(FLAGS.embedding_dim)+"d.txt", "pre-trained glove vectors file path")
-tf.app.flags.DEFINE_string("train_data", "data/externalData/restaurant_train_"+str(FLAGS.year)+".xml",
+tf.app.flags.DEFINE_string("pretrain_file", "ExternalData/glove.42B."+str(FLAGS.embedding_dim)+"d.txt", "pre-trained glove vectors file path")
+tf.app.flags.DEFINE_string("train_data", "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml", # "externalData/restaurant_train_"+str(FLAGS.year)+".xml",
                     "train data path")
-tf.app.flags.DEFINE_string("test_data", "data/externalData/restaurant_test_"+str(FLAGS.year)+".xml",
+tf.app.flags.DEFINE_string("test_data", "ExternalData/ABSA15_Restaurants_Test.xml", # "ExternalData/restaurant_test_"+str(FLAGS.year)+".xml",
                     "test data path")
 
 tf.app.flags.DEFINE_string('method', 'AE', 'model type: AE, AT or AEAT')

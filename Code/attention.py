@@ -15,9 +15,9 @@ class BilinearAttention(tf.keras.layers.Layer):
     def build(self, input_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, self.dim),
-                                             initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
+                                             initializer=tf.keras.initializers.RandomUniform(-0.1, 0.1), trainable=True, regularizer=self.regularizer)
         self.bias = self.add_weight(name="att_bias", shape=(1, ),
-                                    initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
+                                    initializer='zeros', trainable=True, regularizer=self.regularizer)
 
         return super().build(input_shape)
 
@@ -57,9 +57,9 @@ class HierarchicalAttention(tf.keras.layers.Layer):
     def build(self, input_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         self.weight_matrix = self.add_weight(name="att_weight", shape=(self.dim, 1),
-                                             initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
+                                             initializer=tf.keras.initializers.RandomUniform(-0.1, 0.1), trainable=True, regularizer=self.regularizer)
         self.bias = self.add_weight(name="att_bias", shape=(1, ),
-                                    initializer="glorot_uniform", trainable=True, regularizer=self.regularizer)
+                                    initializer='zeros', trainable=True, regularizer=self.regularizer)
 
         return super().build(input_shape)
 

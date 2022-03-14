@@ -1,6 +1,6 @@
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation
+from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
 import utils
 from embedding import GloveEmbedding, BERTEmbedding
@@ -19,9 +19,13 @@ class HAABSA(tf.keras.Model):
         self.hop = hop
         self.hierarchy = hierarchy
 
-        # self.embedding = GloveEmbedding(
-        #     embedding_path, [training_path, test_path])
-        self.embedding = BERTEmbedding()
+        # according to https://arxiv.org/pdf/1207.0580.pdf
+        self.drop_input = Dropout(0.2)
+        self.drop_output = Dropout(0.5)
+
+        self.embedding = GloveEmbedding(
+            embedding_path, [training_path, test_path])
+        # self.embedding = BERTEmbedding()
         self.embedding_dim = self.embedding.embedding_dim
 
         hidden_units = self.embedding_dim  # OMG I THOUGHT HEE JUST RANDOMLY SET IT TO 300
@@ -54,7 +58,7 @@ class HAABSA(tf.keras.Model):
                     2*self.embedding_dim, regularizer)
 
         self.probabilities = Dense(3, Activation(
-            'softmax'), kernel_regularizer=regularizer, bias_regularizer=regularizer)
+            'softmax'), bias_initializer='zeros', kernel_regularizer=regularizer, bias_regularizer=regularizer)
 
     def build(self, inputs_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
@@ -73,12 +77,15 @@ class HAABSA(tf.keras.Model):
         ##### Embedding & BiLSTMs
         # embedding is not trainable, thus you can use it again
         embedded_left = self.embedding(input_left)
+        embedded_left = self.drop_input(embedded_left)
         left_bilstm = self.left_bilstm(embedded_left)
 
         embedded_target = self.embedding(input_target)
+        embedded_target = self.drop_input(embedded_target)
         target_bilstm = self.target_bilstm(embedded_target)
 
         embedded_right = self.embedding(input_right)
+        embedded_right = self.drop_input(embedded_right)
         right_bilstm = self.right_bilstm(embedded_right)
 
         # Representations
@@ -114,6 +121,7 @@ class HAABSA(tf.keras.Model):
         # MLP, why is it called MLP btw? I don´t think it should be.
         v = tf.concat([representation_left, representation_target_left,
                       representation_target_right, representation_right], axis=1)
+        v = self.drop_output(v)
 
         pred = self.probabilities(v)
         # Not sure if the previous line is equal
@@ -172,14 +180,11 @@ def main():
     # Data processing
     left, target, right, polarity = utils.semeval_data(train_data_path)
     x_train = [left, target, right]
-    y_train = tf.one_hot(polarity+1, 3)
-
-    # print(y_train)
-    # pd.DataFrame(y_train).to_csv('y_train.csv')
+    y_train = tf.one_hot(polarity+1, 3, dtype='int64')
 
     left, target, right, polarity = utils.semeval_data(test_data_path)
     x_test = [left, target, right]
-    y_test = tf.one_hot(polarity+1, 3)
+    y_test = tf.one_hot(polarity+1, 3, dtype='int64')
 
     # Specify loss function
     # loss='categorical_crossentropy' does not work properly, not properly scaled to regulizers
@@ -188,14 +193,19 @@ def main():
 
     # Model call
     haabsa = HAABSA(training_path, validation_path,
-                    embedding_path, hop=1, hierarchy=None, regularizer='l1_l2')
-    haabsa.compile(tf.keras.optimizers.SGD(),  loss=cce, metrics=[
+                    embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
+                        l2=0.00001))
+
+    # adam is a optimizer just like Stochastic Gradient Descent
+    haabsa.compile('adam', #tf.keras.optimizers.SGD(learning_rate=0.07, momentum=0.95),
+                   loss=cce, metrics=[
                    'categorical_accuracy'], run_eagerly=False)  # TODO:run_eagerly off when done!
 
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=1, batch_size=32)
+        x_test, y_test), epochs=10, batch_size=32)
     # print(haabsa.summary())
 
+    # just for us to debug the predictions
     predictions = haabsa.predict(x_test)
     print(predictions)
     pd.DataFrame(predictions).to_csv('predictions.csv')
