@@ -3,6 +3,7 @@ pandas
 tensorflow
 tensorflow-addons
 tensorflow-hub
+tensorflow-text
 
 # maybe needed in the future, huggingface makes some nice pretrained models
 #transformers
