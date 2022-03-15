@@ -1,3 +1,4 @@
+import datetime
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
@@ -174,6 +175,12 @@ def main():
 
     train_data_path = "ExternalData/sem_train_2015.csv"
     test_data_path = "ExternalData/sem_test_2015.csv"
+
+    # histogram_freq needs to be zero when working with GloVe embeddings!
+    # is a bug in keras https://github.com/tensorflow/tensorflow/issues/41244
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=0, update_freq='batch')
+
     utils.semeval_to_csv(training_path, train_data_path)
     utils.semeval_to_csv(validation_path, test_data_path)
 
@@ -202,13 +209,14 @@ def main():
                    'categorical_accuracy'], run_eagerly=False)  # TODO:run_eagerly off when done!
 
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=10, batch_size=32)
+        x_test, y_test), epochs=10, batch_size=128,
+        callbacks=[tensorboard_callback])
     # print(haabsa.summary())
 
     # just for us to debug the predictions
     predictions = haabsa.predict(x_test)
     print(predictions)
-    pd.DataFrame(predictions).to_csv('predictions.csv')
+    pd.DataFrame(predictions).to_csv('logs/predictions.csv')
 
 
 if __name__ == '__main__':
