@@ -64,7 +64,7 @@ def license_agreement():
         raise ValueError("You did not agree to the license agreement")
 
 if __name__ == '__main__':
-    # glove("https://nlp.stanford.edu/data/glove.6B.zip")
+    glove("https://nlp.stanford.edu/data/glove.6B.zip")
     # glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
     semeval(2015)
     # semeval(2016)
