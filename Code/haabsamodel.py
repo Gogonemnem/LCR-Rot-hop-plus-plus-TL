@@ -1,15 +1,15 @@
-import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
-import utils
 from embedding import GloveEmbedding, BERTEmbedding
 from attention import BilinearAttention, HierarchicalAttention
 
 
 class HAABSA(tf.keras.Model):
     # hierarchy is tuple of size 2: 1st dim determines combining, 2nd dim determines iterative
-    def __init__(self, training_path, test_path, embedding_path, invert=False, hop=1, hierarchy: tuple = None, regularizer=None):
+    def __init__(self, data_paths: list=None, embedding_path: str=None, invert: bool=False, hop: int=1, hierarchy: tuple=None, drop_1: float=0.2, drop_2: float=0.5, hidden_units: int=None, regularizer=None):
+        
+
         super().__init__()
 
         if hop < 0:
@@ -20,42 +20,43 @@ class HAABSA(tf.keras.Model):
         self.hierarchy = hierarchy
 
         # according to https://arxiv.org/pdf/1207.0580.pdf
-        self.drop_input = Dropout(0.2)
-        self.drop_output = Dropout(0.5)
+        self.drop_input = Dropout(drop_1)
+        self.drop_output = Dropout(drop_2)
 
         self.embedding = GloveEmbedding(
-            embedding_path, [training_path, test_path])
+            embedding_path, data_paths)
         # self.embedding = BERTEmbedding()
         self.embedding_dim = self.embedding.embedding_dim
+        
+        self.hidden_units = hidden_units if hidden_units else self.embedding_dim
 
-        hidden_units = self.embedding_dim  # OMG I THOUGHT HEE JUST RANDOMLY SET IT TO 300
         self.left_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
         self.target_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
         self.right_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
 
         self.average_pooling = AdaptiveAveragePooling1D(1)
 
         self.attention_left = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_right = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_target_left = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_target_right = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
 
         if hierarchy is not None:
             if hierarchy[0]:  # combine all
                 self.hierarchical = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
             else:  # separate inner & outer
                 self.hierarchical_inner = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
                 self.hierarchical_outer = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
 
         self.probabilities = Dense(3, Activation(
             'softmax'), bias_initializer='zeros', kernel_regularizer=regularizer, bias_regularizer=regularizer)
@@ -63,7 +64,7 @@ class HAABSA(tf.keras.Model):
     def build(self, inputs_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         # Commented out, check self.prediction comment below in `call()`
-        # self.weight_matrix = self.add_weight(name="weight", shape=(8*self.embedding_dim, 3),
+        # self.weight_matrix = self.add_weight(name="weight", shape=(8*self.hidden_units, 3),
         #                    initializer="glorot_uniform", trainable=True)
         # self.bias = self.add_weight(name="bias", shape=(3, ),
         #                    initializer="glorot_uniform", trainable=True)
@@ -165,64 +166,3 @@ class HAABSA(tf.keras.Model):
             representation_target_left, representation_target_right = tf.unstack(
                 self.hierarchical_inner(representations), axis=1)
         return representation_left, representation_target_left, representation_target_right, representation_right
-
-
-def main():
-    embedding_path = "ExternalData/glove.6B.300d.txt"
-    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
-
-    train_data_path = "ExternalData/sem_train_2015.csv"
-    test_data_path = "ExternalData/sem_test_2015.csv"
-    utils.semeval_to_csv(training_path, train_data_path)
-    utils.semeval_to_csv(validation_path, test_data_path)
-
-    # Data processing
-    left, target, right, polarity = utils.semeval_data(train_data_path)
-    x_train = [left, target, right]
-    y_train = tf.one_hot(polarity+1, 3, dtype='int64')
-
-    left, target, right, polarity = utils.semeval_data(test_data_path)
-    x_test = [left, target, right]
-    y_test = tf.one_hot(polarity+1, 3, dtype='int64')
-
-    # Specify loss function
-    # loss='categorical_crossentropy' does not work properly, not properly scaled to regulizers
-    cce = tf.keras.losses.CategoricalCrossentropy(
-        reduction=tf.keras.losses.Reduction.SUM)
-
-    # Model call
-    haabsa = HAABSA(training_path, validation_path,
-                    embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
-                        l2=0.00001))
-
-    # adam is a optimizer just like Stochastic Gradient Descent
-    haabsa.compile('adam', #tf.keras.optimizers.SGD(learning_rate=0.07, momentum=0.95),
-                   loss=cce, metrics=[
-                   'categorical_accuracy'], run_eagerly=False)  # TODO:run_eagerly off when done!
-
-    haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=10, batch_size=32)
-    # print(haabsa.summary())
-
-    # just for us to debug the predictions
-    predictions = haabsa.predict(x_test)
-    print(predictions)
-    pd.DataFrame(predictions).to_csv('predictions.csv')
-
-
-if __name__ == '__main__':
-    # import logging
-
-    # # Create and configure logger
-    # logging.basicConfig(filename="newfile.log",
-    #                     format='%(asctime)s %(message)s',
-    #                     filemode='w')
-
-    # # Creating an object
-    # logger = logging.getLogger()
-
-    # # Setting the threshold of logger to DEBUG
-    # logger.setLevel(logging.DEBUG)
-
-    main()
