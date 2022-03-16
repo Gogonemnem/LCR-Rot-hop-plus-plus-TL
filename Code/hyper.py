@@ -10,17 +10,17 @@ import utils
 
 def build_model(hp):
 
-    # Tune regularizers rate for L1 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05 or 1e-06
-    hp_l1_rates = hp.Choice("l1_regularizer", values=[10**-i for i in range(2, 7)])
+    # Tune regularizers rate for L1 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l1_rates = hp.Choice("l1_regularizer", values=[10**-i for i in range(1, 10)])
 
-    # Tune regularizers rate for L2 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05 or 1e-06
-    hp_l2_rates = hp.Choice("l2_regularizer", values=[10**-i for i in range(2, 7)])
+    # Tune regularizers rate for L2 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l2_rates = hp.Choice("l2_regularizer", values=[10**-i for i in range(1, 10)])
 
     regularizer = tf.keras.regularizers.L1L2(l1=hp_l1_rates, l2=hp_l2_rates)
 
 
-    # Tune learning rate for Adam optimizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05 or 1e-06
-    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(2, 7)])
+    # Tune learning rate for Adam optimizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(1, 10)])
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=hp_learning_rate)
 
@@ -62,7 +62,7 @@ def main():
                         directory="logs/fit",
                         project_name="kt_hyperband",)
 
-    tuner.search(x_train, y_train, validation_data=(x_test, y_test), epochs=20, batch_size=32, callbacks=[stop_early], verbose=1)
+    tuner.search(x_train, y_train, validation_data=(x_test, y_test), epochs=20, batch_size=64, callbacks=[stop_early], verbose=1)
     
     # Get the optimal hyperparameters from the results
     best_hps=tuner.get_best_hyperparameters()[0]
