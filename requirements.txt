@@ -4,6 +4,8 @@ tensorflow
 tensorflow-addons
 tensorboard
 
+keras-tuner
+
 # maybe needed in the future, huggingface makes some nice pretrained models
 #transformers
 #sentencepiece

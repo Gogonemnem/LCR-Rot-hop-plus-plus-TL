@@ -7,7 +7,9 @@ from attention import BilinearAttention, HierarchicalAttention
 
 class HAABSA(tf.keras.Model):
     # hierarchy is tuple of size 2: 1st dim determines combining, 2nd dim determines iterative
-    def __init__(self, training_path, test_path, embedding_path, invert=False, hop=1, hierarchy: tuple = None, regularizer=None):
+    def __init__(self, data_paths: list=None, embedding_path: str=None, invert: bool=False, hop: int=1, hierarchy: tuple=None, drop_1: float=0.2, drop_2: float=0.5, hidden_units: int=None, regularizer=None):
+        
+
         super().__init__()
 
         if hop < 0:
@@ -18,42 +20,43 @@ class HAABSA(tf.keras.Model):
         self.hierarchy = hierarchy
 
         # according to https://arxiv.org/pdf/1207.0580.pdf
-        self.drop_input = Dropout(0.2)
-        self.drop_output = Dropout(0.5)
+        self.drop_input = Dropout(drop_1)
+        self.drop_output = Dropout(drop_2)
 
         self.embedding = GloveEmbedding(
-            embedding_path, [training_path, test_path])
+            embedding_path, data_paths)
         # self.embedding = BERTEmbedding()
         self.embedding_dim = self.embedding.embedding_dim
+        
+        self.hidden_units = hidden_units if hidden_units else self.embedding_dim
 
-        hidden_units = self.embedding_dim  # OMG I THOUGHT HEE JUST RANDOMLY SET IT TO 300
         self.left_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
         self.target_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
         self.right_bilstm = Bidirectional(
-            LSTM(hidden_units, return_sequences=True))
+            LSTM(self.hidden_units, return_sequences=True))
 
         self.average_pooling = AdaptiveAveragePooling1D(1)
 
         self.attention_left = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_right = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_target_left = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
         self.attention_target_right = BilinearAttention(
-            2*self.embedding_dim, regularizer)
+            2*self.hidden_units, regularizer)
 
         if hierarchy is not None:
             if hierarchy[0]:  # combine all
                 self.hierarchical = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
             else:  # separate inner & outer
                 self.hierarchical_inner = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
                 self.hierarchical_outer = HierarchicalAttention(
-                    2*self.embedding_dim, regularizer)
+                    2*self.hidden_units, regularizer)
 
         self.probabilities = Dense(3, Activation(
             'softmax'), bias_initializer='zeros', kernel_regularizer=regularizer, bias_regularizer=regularizer)
@@ -61,7 +64,7 @@ class HAABSA(tf.keras.Model):
     def build(self, inputs_shape):
         # TODO: modify tweaking params!!!! for example regulizer = l2
         # Commented out, check self.prediction comment below in `call()`
-        # self.weight_matrix = self.add_weight(name="weight", shape=(8*self.embedding_dim, 3),
+        # self.weight_matrix = self.add_weight(name="weight", shape=(8*self.hidden_units, 3),
         #                    initializer="glorot_uniform", trainable=True)
         # self.bias = self.add_weight(name="bias", shape=(3, ),
         #                    initializer="glorot_uniform", trainable=True)

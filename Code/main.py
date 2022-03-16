@@ -17,9 +17,13 @@ def main():
 
     # histogram_freq needs to be zero when working with GloVe embeddings!
     # is a bug in keras https://github.com/tensorflow/tensorflow/issues/41244
-    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "Code/logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=log_dir, histogram_freq=0, update_freq='batch')
+    # Create a callback that saves the model's weights
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=log_dir,
+                                                     save_weights_only=True,
+                                                     verbose=1)
 
     utils.semeval_to_csv(training_path, train_data_path)
     utils.semeval_to_csv(validation_path, test_data_path)
@@ -39,7 +43,7 @@ def main():
         reduction=tf.keras.losses.Reduction.SUM)
 
     # Model call
-    haabsa = HAABSA(training_path, validation_path,
+    haabsa = HAABSA([training_path, validation_path],
                     embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
                         l2=0.00001))
 
@@ -48,15 +52,18 @@ def main():
                    loss=cce, metrics=[
                        'categorical_accuracy'], run_eagerly=False)  # TODO:run_eagerly off when done!
 
+    # pretrained or not -> Loads the weights
+    # haabsa.load_weights(checkpoint_path)
+    
     haabsa.fit(x_train, y_train, validation_data=(
         x_test, y_test), epochs=10, batch_size=128,
-        callbacks=[tensorboard_callback])
+        callbacks=[tensorboard_callback, cp_callback])
     # print(haabsa.summary())
 
     # just for us to debug the predictions
     predictions = haabsa.predict(x_test)
     print(predictions)
-    pd.DataFrame(predictions).to_csv('logs/predictions.csv')
+    pd.DataFrame(predictions).to_csv('Code/logs/predictions.csv')
 
 
 if __name__ == '__main__':
