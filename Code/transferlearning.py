@@ -5,9 +5,9 @@ from embedding import GloveEmbedding, BERTEmbedding
 from attention import BilinearAttention, HierarchicalAttention
 
 
-class LCRRothopPP(tf.keras.Model):
+class TL(tf.keras.Model):
     def __init__(self, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
-        """Creates a new LCR-Rot-hop++ model described in Trusca's paper.
+        """Creates a new Transfer Learning model described in the paper.
 
         Args:
             data_paths (list, optional): List of paths to the training & validation data for GloVe Embeddings. Defaults to None.
@@ -81,14 +81,23 @@ class LCRRothopPP(tf.keras.Model):
         """Describes the model by relating the layers
 
         Args:
-            inputs: List of the left context, target, and right context
+            inputs: List of the left context, target, right context, and document data
 
-        Returns: Probabilities per class
+        Returns: Probabilities per class per data level
         """
         # Separate inputs: LCR
-        input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
+        input_left, input_target, input_right, input_document = inputs[
+            0], inputs[1], inputs[2], inputs[3]
 
-        # Embedding & BiLSTMs
+        ### Embedding & BiLSTMs
+        # Document level
+        embedded_document = self.embedding(input_document)
+        embedded_document = self.drop_input(embedded_document)
+        doc_left_bilstm = self.left_bilstm(embedded_document)
+        doc_center_bilstm = self.target_bilstm(embedded_document)
+        doc_right_bilstm = self.right_bilstm(embedded_document)
+
+        # Aspect level
         # embedding is not trainable, thus you can use it again
         embedded_left = self.embedding(input_left)
         embedded_left = self.drop_input(embedded_left)
@@ -124,6 +133,10 @@ class LCRRothopPP(tf.keras.Model):
                 representation_left, representation_target_left, representation_target_right, representation_right)
 
         # MLP
+        # Document level
+        # WIP
+
+        # Aspect level
         v = tf.concat([representation_left, representation_target_left,
                       representation_target_right, representation_right], axis=1)
         v = self.drop_output(v)
