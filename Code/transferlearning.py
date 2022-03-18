@@ -91,57 +91,62 @@ class TL(tf.keras.Model):
 
         ### Embedding & BiLSTMs
         # Document level
-        embedded_document = self.embedding(input_document)
-        embedded_document = self.drop_input(embedded_document)
-        doc_left_bilstm = self.left_bilstm(embedded_document)
-        doc_center_bilstm = self.target_bilstm(embedded_document)
-        doc_right_bilstm = self.right_bilstm(embedded_document)
+        if input_document is not None: # check if documents are present
+            embedded_document = self.embedding(input_document)
+            embedded_document = self.drop_input(embedded_document)
+            doc_left_bilstm = self.left_bilstm(embedded_document)
+            doc_center_bilstm = self.target_bilstm(embedded_document)
+            doc_right_bilstm = self.right_bilstm(embedded_document)
 
         # Aspect level
-        # embedding is not trainable, thus you can use it again
-        embedded_left = self.embedding(input_left)
-        embedded_left = self.drop_input(embedded_left)
-        left_bilstm = self.left_bilstm(embedded_left)
+        if not None in [input_left, input_target, input_right]: # inputs[0:3], check if aspects are present
+            # embedding is not trainable, thus you can use it again
+            embedded_left = self.embedding(input_left)
+            embedded_left = self.drop_input(embedded_left)
+            left_bilstm = self.left_bilstm(embedded_left)
 
-        embedded_target = self.embedding(input_target)
-        embedded_target = self.drop_input(embedded_target)
-        target_bilstm = self.target_bilstm(embedded_target)
+            embedded_target = self.embedding(input_target)
+            embedded_target = self.drop_input(embedded_target)
+            target_bilstm = self.target_bilstm(embedded_target)
 
-        embedded_right = self.embedding(input_right)
-        embedded_right = self.drop_input(embedded_right)
-        right_bilstm = self.right_bilstm(embedded_right)
+            embedded_right = self.embedding(input_right)
+            embedded_right = self.drop_input(embedded_right)
+            right_bilstm = self.right_bilstm(embedded_right)
 
-        # Representations
-        representation_target_left = representation_target_right = self.average_pooling(
-            target_bilstm)[:, 0, :]
+            # Representations
+            representation_target_left = representation_target_right = self.average_pooling(
+                target_bilstm)[:, 0, :]
 
-        representation_left = self.average_pooling(left_bilstm)[:, 0, :]
-        representation_right = self.average_pooling(right_bilstm)[:, 0, :]
+            representation_left = self.average_pooling(left_bilstm)[:, 0, :]
+            representation_right = self.average_pooling(right_bilstm)[:, 0, :]
 
-        # Attention layers
-        # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
-        for _ in range(self.hop):
-            representation_left, representation_target_left, representation_target_right, representation_right = self._apply_bilinear_attention(
-                left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right)
+            # Attention layers
+            # for hop == 0, this loop is skipped -> LCR model (no attention, no rot)
+            for _ in range(self.hop):
+                representation_left, representation_target_left, representation_target_right, representation_right = self._apply_bilinear_attention(
+                    left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right)
 
-            if self.hierarchy is not None and self.hierarchy[1]:
+                if self.hierarchy is not None and self.hierarchy[1]:
+                    representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
+                        representation_left, representation_target_left, representation_target_right, representation_right)
+
+            if self.hierarchy is not None and (not self.hierarchy[1] or self.hop == 0):
                 representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
                     representation_left, representation_target_left, representation_target_right, representation_right)
 
-        if self.hierarchy is not None and (not self.hierarchy[1] or self.hop == 0):
-            representation_left, representation_target_left, representation_target_right, representation_right = self._apply_hierarchical_attention(
-                representation_left, representation_target_left, representation_target_right, representation_right)
-
         # MLP
         # Document level
+        if input_document is not None: # check if documents are present
+            pass
         # WIP
 
         # Aspect level
-        v = tf.concat([representation_left, representation_target_left,
-                      representation_target_right, representation_right], axis=1)
-        v = self.drop_output(v)
+        if not None in [input_left, input_target, input_right]: # inputs[0:3], check if aspects are present
+            v = tf.concat([representation_left, representation_target_left,
+                        representation_target_right, representation_right], axis=1)
+            v = self.drop_output(v)
 
-        pred = self.probabilities(v)
+            pred = self.probabilities(v)
         return pred
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
