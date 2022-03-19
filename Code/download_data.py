@@ -1,8 +1,56 @@
 import requests
 import zipfile
+import gzip
+import json
+import tempfile
+import shutil
 from io import BytesIO
 from pathlib import Path
 
+def document_data(folder_path: str="ExternalData"):
+    # site http://deepyeti.ucsd.edu/jianmo/amazon/index.html
+    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
+    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
+
+    print("Starting Download")
+    r = requests.get(amazon)
+    print("Download Finished")
+    # file = gzip.GzipFile(fileobj=r.content)
+    # print(file.read())
+    path = Path.cwd() / folder_path / amazon.split('/')[-1]
+
+    # with tempfile.TemporaryFile() as tmp_gz, tempfile.TemporaryFile() as tmp_json:
+    #     for chunk in r.iter_content(chunk_size=1024):
+    #         if chunk:
+    #             tmp_gz.write(chunk)
+    #             tmp_gz.flush()
+
+    gz = gzip.GzipFile(fileobj=BytesIO(r.content))
+    with open(path, 'wb') as tmp_json:
+    # with tempfile.TemporaryFile() as tmp_json:
+        shutil.copyfileobj(gz, tmp_json)
+        # # tmp_json.read()
+        # data = json.loads(tmp_json)
+        # print(data)
+    
+    with open(path, 'r') as tmp_json:
+        data = json.load(tmp_json)
+        print(data)
+    
+    # print(data)
+
+    # extracting the zip file contents
+    print(f"Extracting files to {path}")
+    print()
+
+    # file = zipfile.ZipFile(BytesIO(r.content))
+    # file.extractall(path)
+
+    # with gzip.open('features_train.csv.gz') as f:
+
+    #     features_train = pd.read_csv(f)
+
+    # features_train.head()
 
 def glove(glove_url: str, folder_path: str="ExternalData"):
     path = Path.cwd() / folder_path
@@ -64,8 +112,9 @@ def license_agreement():
         raise ValueError("You did not agree to the license agreement")
 
 if __name__ == '__main__':
-    glove("https://nlp.stanford.edu/data/glove.6B.zip")
+    # glove("https://nlp.stanford.edu/data/glove.6B.zip")
     # glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
-    semeval(2015)
+    # semeval(2015)
     # semeval(2016)
+    document_data()
     pass
