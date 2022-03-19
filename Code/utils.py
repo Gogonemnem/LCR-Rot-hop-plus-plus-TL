@@ -7,7 +7,7 @@ import csv
 
 def load_pretrained_embeddings(embedding_path, skip_line=False):
     embeddings_index = {}
-    with open(embedding_path) as f:
+    with open(embedding_path, encoding='utf-8') as f:
         if skip_line:
             next(f) # or f.readline()
 
@@ -46,7 +46,7 @@ def semeval_to_csv_combined(f_in: str, f_out: str):
 def semeval_to_csv(f_in: str, f_out: str):
     root = ET.parse(f_in).getroot()
 
-    with open(f_out, 'w', newline='') as file:
+    with open(f_out, 'w', encoding='utf-8', newline='') as file:
         columns = ("context_left", "target", "context_right", "polarity")
         writer = csv.DictWriter(file, fieldnames=columns)
         writer.writeheader()

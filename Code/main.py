@@ -54,9 +54,9 @@ def main():
 
     # pretrained or not -> Loads the weights
     # haabsa.load_weights(checkpoint_path)
-    
+
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=10, batch_size=128,
+        x_test, y_test), epochs=10, batch_size=32,
         callbacks=[tensorboard_callback, cp_callback])
     # print(haabsa.summary())
 
