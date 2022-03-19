@@ -4,6 +4,7 @@ import zipfile
 import gzip
 import json
 import tempfile
+import tarfile
 import shutil
 from io import BytesIO
 from pathlib import Path
@@ -23,7 +24,7 @@ def document_data(folder_path: str="ExternalData"):
     with open(path, 'wb') as tmp_json:
         shutil.copyfileobj(gz, tmp_json)
     
-    with open(path, 'r') as tmp_json, open("amazon.csv", 'w', newline='') as csv_file:
+    with open(path, 'r') as tmp_json, open("ExternalData\amazon.csv", 'w', newline='') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
         writer.writeheader()
 
@@ -101,10 +102,32 @@ def license_agreement():
     if input("Do you agree with the license agreement from MS-NC-NoReD? http://www.meta-net.eu/meta-share/meta-share-licenses/META-SHARE%20NonCommercial%20NoRedistribution-v%201.0.pdf ([Y]es/[N]o): ").lower() not in ('y', 'yes'):
         raise ValueError("You did not agree to the license agreement")
 
+def yelp():
+    with tarfile.open(r"ExternalData\yelp_dataset.tar", 'r') as tar:
+        tar.extractall("ExternalData\yelp")
+
+    with open("ExternalData\yelp\yelp_academic_dataset_review.json") as tmp_json, open(r"ExternalData\yelp.csv", 'w', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
+        writer.writeheader()
+
+        for line in tmp_json:
+            data = json.loads(line)
+            if 'text' not in data:
+                continue
+
+            if data['stars'] < 3:
+                polarity = -1
+            elif data['stars'] == 3:
+                polarity = 0
+            elif data['stars'] > 3:
+                polarity = 1
+            writer.writerow({"text": data['text'], "polarity": polarity})
+
 if __name__ == '__main__':
     # glove("https://nlp.stanford.edu/data/glove.6B.zip")
     # glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
     # semeval(2015)
     # semeval(2016)
-    document_data()
+    # document_data()
+    yelp()
     pass
