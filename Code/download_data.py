@@ -1,3 +1,4 @@
+import csv
 import requests
 import zipfile
 import gzip
@@ -15,42 +16,31 @@ def document_data(folder_path: str="ExternalData"):
     print("Starting Download")
     r = requests.get(amazon)
     print("Download Finished")
-    # file = gzip.GzipFile(fileobj=r.content)
-    # print(file.read())
-    path = Path.cwd() / folder_path / amazon.split('/')[-1]
-
-    # with tempfile.TemporaryFile() as tmp_gz, tempfile.TemporaryFile() as tmp_json:
-    #     for chunk in r.iter_content(chunk_size=1024):
-    #         if chunk:
-    #             tmp_gz.write(chunk)
-    #             tmp_gz.flush()
+    
+    path = Path.cwd() / folder_path / amazon.split('/')[-1][:-8]
 
     gz = gzip.GzipFile(fileobj=BytesIO(r.content))
     with open(path, 'wb') as tmp_json:
-    # with tempfile.TemporaryFile() as tmp_json:
         shutil.copyfileobj(gz, tmp_json)
-        # # tmp_json.read()
-        # data = json.loads(tmp_json)
-        # print(data)
     
-    with open(path, 'r') as tmp_json:
-        data = json.load(tmp_json)
-        print(data)
-    
-    # print(data)
+    with open(path, 'r') as tmp_json, open("amazon.csv", 'w', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
+        writer.writeheader()
 
-    # extracting the zip file contents
+        for line in tmp_json:
+            data = json.loads(line)
+            if 'reviewText' not in data:
+                continue
+
+            if data['overall'] < 3:
+                polarity = -1
+            elif data['overall'] == 3:
+                polarity = 0
+            elif data['overall'] > 3:
+                polarity = 1
+            writer.writerow({"text": data['reviewText'], "polarity": polarity})
+
     print(f"Extracting files to {path}")
-    print()
-
-    # file = zipfile.ZipFile(BytesIO(r.content))
-    # file.extractall(path)
-
-    # with gzip.open('features_train.csv.gz') as f:
-
-    #     features_train = pd.read_csv(f)
-
-    # features_train.head()
 
 def glove(glove_url: str, folder_path: str="ExternalData"):
     path = Path.cwd() / folder_path
