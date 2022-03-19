@@ -74,19 +74,21 @@ class TL(tf.keras.Model):
                     2*self.hidden_units, regularizer)
 
         # MLP layer, why is it called MLP btw? I don´t think it should be.
-        self.probabilities = Dense(3, Activation(
+        self.doc_dense = Dense(3, Activation(
+            'softmax'), bias_initializer='zeros', kernel_regularizer=regularizer, bias_regularizer=regularizer)
+        self.asp_dense = Dense(3, Activation(
             'softmax'), bias_initializer='zeros', kernel_regularizer=regularizer, bias_regularizer=regularizer)
 
     def call(self, inputs):
         """Describes the model by relating the layers
 
         Args:
-            inputs: List of the left context, target, right context, and document data
+            inputs: List of document data, the left context, target, right context
 
         Returns: Probabilities per class per data level
         """
         # Separate inputs: LCR
-        input_left, input_target, input_right, input_document = inputs[
+        input_document, input_left, input_target, input_right = inputs[
             0], inputs[1], inputs[2], inputs[3]
 
         ### Embedding & BiLSTMs
@@ -94,9 +96,14 @@ class TL(tf.keras.Model):
         if input_document is not None: # check if documents are present
             embedded_document = self.embedding(input_document)
             embedded_document = self.drop_input(embedded_document)
+
             doc_left_bilstm = self.left_bilstm(embedded_document)
             doc_center_bilstm = self.target_bilstm(embedded_document)
             doc_right_bilstm = self.right_bilstm(embedded_document)
+
+            doc_left = self.average_pooling(doc_left_bilstm)
+            doc_center = self.average_pooling(doc_center_bilstm)
+            doc_right = self.average_pooling(doc_right_bilstm)
 
         # Aspect level
         if not None in [input_left, input_target, input_right]: # inputs[0:3], check if aspects are present
@@ -137,8 +144,10 @@ class TL(tf.keras.Model):
         # MLP
         # Document level
         if input_document is not None: # check if documents are present
-            pass
-        # WIP
+            v = tf.concat([doc_left, doc_center, doc_right], axis=1)
+            v = self.drop_output(v)
+
+            doc_pred = self.doc_dense(v)
 
         # Aspect level
         if not None in [input_left, input_target, input_right]: # inputs[0:3], check if aspects are present
@@ -146,8 +155,9 @@ class TL(tf.keras.Model):
                         representation_target_right, representation_right], axis=1)
             v = self.drop_output(v)
 
-            pred = self.probabilities(v)
-        return pred
+            asp_pred = self.asp_dense(v)
+
+        return [doc_pred, asp_pred]
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
         """Applies the attention layer described by in the paper"""
