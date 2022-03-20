@@ -9,10 +9,10 @@ import shutil
 from io import BytesIO
 from pathlib import Path
 
-def document_data(folder_path: str="ExternalData"):
+def amazon(folder_path: str="ExternalData"):
     # site http://deepyeti.ucsd.edu/jianmo/amazon/index.html
     amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
-    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
+    # amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
 
     print("Starting Download")
     r = requests.get(amazon)
@@ -103,25 +103,59 @@ def license_agreement():
         raise ValueError("You did not agree to the license agreement")
 
 def yelp():
-    with tarfile.open(r"ExternalData\yelp_dataset.tar", 'r') as tar:
-        tar.extractall("ExternalData\yelp")
+    from bs4 import BeautifulSoup
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'
+    }
+    
+    data = {
+        'name': 'a',
+        "email": 'a@gmail.com',
+        "signature": "a",
+        "terms_accepted": "y"
+    }
 
-    with open("ExternalData\yelp\yelp_academic_dataset_review.json") as tmp_json, open(r"ExternalData\yelp.csv", 'w', newline='') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
-        writer.writeheader()
+    url = 'https://www.yelp.com/dataset/download'
+    with requests.Session() as s:
+        s.headers.update(headers)
+        r = s.get(url, verify=True)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        tag = soup.find(name="input", attrs={"name": "csrftok"})
+        data["csrftok"] = tag["value"]
 
-        for line in tmp_json:
-            data = json.loads(line)
-            if 'text' not in data:
-                continue
+        r = s.post(url, data=data)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        tag = soup.find(name="a", attrs={"class":"ybtn ybtn--primary"})
+        
+        print('downloading')
+        file = s.get(tag['href'])
+        print('downloaded')
+    
+    print("getting content")
+    file_like_object = BytesIO(file.content)
+    # print(file.content)
+    # print(file_like_object)
+    # tarfile.open(fileobj=file_like_object)
+    
+    print('unpacking files')
+    with tarfile.open(fileobj=file_like_object) as tar:
+        with tar.extractfile(tar.getmembers()[3]) as tmp_json, open(r"ExternalData\yelp.csv", 'w', newline='') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
+            writer.writeheader()
 
-            if data['stars'] < 3:
-                polarity = -1
-            elif data['stars'] == 3:
-                polarity = 0
-            elif data['stars'] > 3:
-                polarity = 1
-            writer.writerow({"text": data['text'], "polarity": polarity})
+            for line in tmp_json:
+                data = json.loads(line)
+                if 'text' not in data:
+                    continue
+
+                if data['stars'] < 3:
+                    polarity = -1
+                elif data['stars'] == 3:
+                    polarity = 0
+                elif data['stars'] > 3:
+                    polarity = 1
+                writer.writerow({"text": data['text'], "polarity": polarity})
 
 if __name__ == '__main__':
     # glove("https://nlp.stanford.edu/data/glove.6B.zip")
@@ -130,4 +164,5 @@ if __name__ == '__main__':
     # semeval(2016)
     # document_data()
     yelp()
+    # amazon()
     pass
