@@ -9,8 +9,8 @@ from pathlib import Path
 
 def amazon(folder_path: str="ExternalData"):
     # site http://deepyeti.ucsd.edu/jianmo/amazon/index.html
-    # amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
-    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
+    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
+    # amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
 
     print("Starting Download")
     r = requests.get(amazon)
