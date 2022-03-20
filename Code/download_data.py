@@ -1,30 +1,25 @@
 import csv
 import requests
-import zipfile
-import gzip
+from zipfile import ZipFile
+from gzip import GzipFile
 import json
-import tempfile
 import tarfile
-import shutil
 from io import BytesIO
 from pathlib import Path
 
 def amazon(folder_path: str="ExternalData"):
     # site http://deepyeti.ucsd.edu/jianmo/amazon/index.html
-    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
-    # amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
+    # amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Electronics.json.gz'
+    amazon = r'http://deepyeti.ucsd.edu/jianmo/amazon/categoryFiles/Magazine_Subscriptions.json.gz'
 
     print("Starting Download")
     r = requests.get(amazon)
     print("Download Finished")
     
     path = Path.cwd() / folder_path / amazon.split('/')[-1][:-8]
-
-    gz = gzip.GzipFile(fileobj=BytesIO(r.content))
-    with open(path, 'wb') as tmp_json:
-        shutil.copyfileobj(gz, tmp_json)
     
-    with open(path, 'r') as tmp_json, open("ExternalData\amazon.csv", 'w', newline='') as csv_file:
+    print('Extracting file and writing csv file')
+    with GzipFile(fileobj=BytesIO(r.content)) as tmp_json, open(r"ExternalData\amazon.csv", 'w', newline='') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
         writer.writeheader()
 
@@ -40,8 +35,7 @@ def amazon(folder_path: str="ExternalData"):
             elif data['overall'] > 3:
                 polarity = 1
             writer.writerow({"text": data['reviewText'], "polarity": polarity})
-
-    print(f"Extracting files to {path}")
+    print('csv file created')
 
 def glove(glove_url: str, folder_path: str="ExternalData"):
     path = Path.cwd() / folder_path
@@ -52,7 +46,7 @@ def glove(glove_url: str, folder_path: str="ExternalData"):
 
     # extracting the zip file contents
     print(f"Extracting files to {path}")
-    file = zipfile.ZipFile(BytesIO(r.content))
+    file = ZipFile(BytesIO(r.content))
     file.extractall(path)
 
 def semeval(year, folder_path: str="ExternalData"):
@@ -95,7 +89,7 @@ def semeval(year, folder_path: str="ExternalData"):
         for url in urls:
             form_data = {'licence_agree': 'on', 'in_licence_agree_form': 'True', 'licence': 'MS-NC-NoReD'}
             x = s.post(url, data = form_data)
-            file = zipfile.ZipFile(BytesIO(x.content))
+            file = ZipFile(BytesIO(x.content))
             file.extractall(path)
 
 def license_agreement():
@@ -110,7 +104,7 @@ def yelp():
     }
     
     data = {
-        'name': 'a',
+        "name": 'a',
         "email": 'a@gmail.com',
         "signature": "a",
         "terms_accepted": "y"
@@ -128,18 +122,13 @@ def yelp():
         soup = BeautifulSoup(r.content, 'html.parser')
         tag = soup.find(name="a", attrs={"class":"ybtn ybtn--primary"})
         
-        print('downloading')
+        print('Starting Download')
         file = s.get(tag['href'])
-        print('downloaded')
+        print('Download Finished')
     
-    print("getting content")
-    file_like_object = BytesIO(file.content)
-    # print(file.content)
-    # print(file_like_object)
-    # tarfile.open(fileobj=file_like_object)
-    
-    print('unpacking files')
-    with tarfile.open(fileobj=file_like_object) as tar:
+    print('Getting content')
+    with tarfile.open(fileobj=BytesIO(file.content)) as tar:
+        print('Extracting file & writing csv file')
         with tar.extractfile(tar.getmembers()[3]) as tmp_json, open(r"ExternalData\yelp.csv", 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
             writer.writeheader()
@@ -156,13 +145,13 @@ def yelp():
                 elif data['stars'] > 3:
                     polarity = 1
                 writer.writerow({"text": data['text'], "polarity": polarity})
+    print('csv file created')
 
 if __name__ == '__main__':
     # glove("https://nlp.stanford.edu/data/glove.6B.zip")
     # glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
     # semeval(2015)
     # semeval(2016)
-    # document_data()
-    yelp()
-    # amazon()
+    # yelp()
+    amazon()
     pass
