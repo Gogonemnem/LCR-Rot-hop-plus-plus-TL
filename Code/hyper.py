@@ -71,13 +71,13 @@ def main():
 if __name__ == '__main__':
     # Implement some way afterwards
     # these are global variables now
-    # embedding_path = "ExternalData/glove.6B.300d.txt"
-    embedding_path = "ExternalData/glove.42B.300d.txt"
-    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
+    embedding_path = "../ExternalData/glove.6B.300d.txt"
+    embedding_path = "../ExternalData/glove.42B.300d.txt"
+    training_path = "../ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    validation_path = "../ExternalData/ABSA15_Restaurants_Test.xml"
 
-    train_data_path = "ExternalData/sem_train_2015.csv"
-    test_data_path = "ExternalData/sem_test_2015.csv"
+    train_data_path = "../ExternalData/sem_train_2015.csv"
+    test_data_path = "../ExternalData/sem_test_2015.csv"
 
     main()
 
