@@ -1,7 +1,8 @@
 import tensorflow as tf
-import kerastuner as kt
-from haabsamodel import HAABSA
+import keras_tuner as kt
+from lcrrothopplusplus import LCRRothopPP
 import utils
+import embedding
 
 # useful links
 # https://towardsdatascience.com/hyperparameter-tuning-with-kerastuner-and-tensorflow-c4a4d690b31a
@@ -32,7 +33,7 @@ def build_model(hp):
     hidden_units = hp.Int("hidden_units", min_value=200, max_value=400, step=50)
 
     # Initialize model.
-    model = HAABSA([training_path, validation_path],
+    model = LCRRothopPP(300, [training_path, validation_path],
                     embedding_path, hop=1, hierarchy=None, drop_1=drop_rate_1, drop_2=drop_rate_2, hidden_units=hidden_units, regularizer=regularizer)
 
     # loss='categorical_crossentropy' works here, bc hyperparameter tuning
@@ -43,12 +44,15 @@ def build_model(hp):
 
 def main():
     # Data processing
-    left, target, right, polarity = utils.semeval_data(train_data_path)
-    x_train = [left, target, right]
+    emb = embedding.GloveEmbedding(
+        embedding_path, [training_path, validation_path])
+
+    *sentences, polarity = utils.semeval_data(train_data_path)
+    x_train = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_train = tf.one_hot(polarity+1, 3, dtype='int64')
 
-    left, target, right, polarity = utils.semeval_data(test_data_path)
-    x_test = [left, target, right]
+    *sentences, polarity = utils.semeval_data(test_data_path)
+    x_test = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_test = tf.one_hot(polarity+1, 3, dtype='int64')
 
     stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
@@ -71,13 +75,13 @@ def main():
 if __name__ == '__main__':
     # Implement some way afterwards
     # these are global variables now
-    embedding_path = "../ExternalData/glove.6B.300d.txt"
-    embedding_path = "../ExternalData/glove.42B.300d.txt"
-    training_path = "../ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    validation_path = "../ExternalData/ABSA15_Restaurants_Test.xml"
+    embedding_path = "ExternalData/glove.6B.300d.txt"
+    embedding_path = "ExternalData/glove.42B.300d.txt"
+    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
 
-    train_data_path = "../ExternalData/sem_train_2015.csv"
-    test_data_path = "../ExternalData/sem_test_2015.csv"
+    train_data_path = "ExternalData/sem_train_2015.csv"
+    test_data_path = "ExternalData/sem_test_2015.csv"
 
     main()
 

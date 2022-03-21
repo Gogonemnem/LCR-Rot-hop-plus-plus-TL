@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
@@ -119,7 +120,8 @@ class LCRRothopPP(tf.keras.Model):
         v = self.drop_output(v)
 
         pred = self.probabilities(v)
-        return pred
+        copy = tf.fill(tf.shape(pred), np.nan)
+        return [pred, copy]
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
         """Applies the attention layer described by in the paper"""
