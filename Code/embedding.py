@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow_hub as hub
+import tensorflow_text as text
 
 import utils
 
@@ -46,8 +48,6 @@ class GloveEmbedding(Embedding):
 
 
 class BERTEmbedding(Embedding):
-    import tensorflow_hub as hub
-    import tensorflow_text as text
     def __init__(self, pp_url="https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3",
                  bert_url='https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4') -> None:
         embedding_dim = 768 # TODO: Make modifiable for other berts
@@ -137,14 +137,14 @@ class BERTEmbedding(Embedding):
 
 ####################################################################################
 
-if __name__ == '__main__':
-    # load the pre-processing model 
-    preprocess = hub.load('https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3')
-    # Use BERT pre-processing on a batch of raw text inputs.
-    embeddings = preprocess(['Blog writing is awesome. If you understand it.', 'Hi there', 'Oh wow'])
+# if __name__ == '__main__':
+#     # load the pre-processing model 
+#     preprocess = hub.load('https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3')
+#     # Use BERT pre-processing on a batch of raw text inputs.
+#     embeddings = preprocess(['Blog writing is awesome. If you understand it.', 'Hi there', 'Oh wow'])
     
-    bert = hub.load('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4')
-    output = bert(embeddings)
+#     bert = hub.load('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4')
+#     output = bert(embeddings)
 
-    test = tf.math.reduce_mean(output['encoder_outputs'][-4:], axis=0)
-    print(test[:,:,:300])
+#     test = tf.math.reduce_mean(output['encoder_outputs'][-4:], axis=0)
+#     print(test[:,:,:300])
