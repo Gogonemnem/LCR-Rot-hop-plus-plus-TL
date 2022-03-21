@@ -1,12 +1,11 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
-from embedding import GloveEmbedding, BERTEmbedding
 from attention import BilinearAttention, HierarchicalAttention
 
 
 class LCRRothopPP(tf.keras.Model):
-    def __init__(self, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
+    def __init__(self, embedding_dim, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
         """Creates a new LCR-Rot-hop++ model described in Trusca's paper.
 
         Args:
@@ -34,12 +33,7 @@ class LCRRothopPP(tf.keras.Model):
         self.drop_output = Dropout(drop_2)
 
         # Check which embedding to use
-        if data_paths and embedding_path:
-            self.embedding = GloveEmbedding(
-                embedding_path, data_paths)
-        else:
-            self.embedding = BERTEmbedding()
-        self.embedding_dim = self.embedding.embedding_dim
+        self.embedding_dim = embedding_dim
 
         # BiLSTM layers
         self.hidden_units = hidden_units if hidden_units else self.embedding_dim
@@ -88,19 +82,15 @@ class LCRRothopPP(tf.keras.Model):
         # Separate inputs: LCR
         input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
 
-        # Embedding & BiLSTMs
-        # embedding is not trainable, thus you can use it again
-        embedded_left = self.embedding(input_left)
-        embedded_left = self.drop_input(embedded_left)
-        left_bilstm = self.left_bilstm(embedded_left)
+        # BiLSTMs
+        input_left = self.drop_input(input_left)
+        left_bilstm = self.left_bilstm(input_left)
 
-        embedded_target = self.embedding(input_target)
-        embedded_target = self.drop_input(embedded_target)
-        target_bilstm = self.target_bilstm(embedded_target)
+        input_target = self.drop_input(input_target)
+        target_bilstm = self.target_bilstm(input_target)
 
-        embedded_right = self.embedding(input_right)
-        embedded_right = self.drop_input(embedded_right)
-        right_bilstm = self.right_bilstm(embedded_right)
+        input_right = self.drop_input(input_right)
+        right_bilstm = self.right_bilstm(input_right)
 
         # Representations
         representation_target_left = representation_target_right = self.average_pooling(

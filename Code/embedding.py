@@ -75,6 +75,13 @@ class BERTEmbedding(Embedding):
         # print(tf.shape(average_last_four))
         return average_last_four
 
+def embed(embedding_layer, *sentences, path='ExternalData/embedded'):
+    embeddings = []
+    for sent in sentences:
+        embeddings.append(embedding_layer(sent))
+    embeddings = np.stack(embeddings)
+    # np.save(path)
+    return embeddings
 
 
 ###########################################################3 OLD CODE

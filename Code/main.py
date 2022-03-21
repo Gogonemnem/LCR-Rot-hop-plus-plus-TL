@@ -3,17 +3,18 @@ import pandas as pd
 
 import tensorflow as tf
 
-from haabsamodel import HAABSA
+from lcrrothopplusplus import LCRRothopPP
+import embedding
 import utils
 
 
 def main():
-    embedding_path = "../ExternalData/glove.6B.300d.txt"
-    training_path = "../ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    validation_path = "../ExternalData/ABSA15_Restaurants_Test.xml"
+    embedding_path = "ExternalData/glove.42B.300d.txt"
+    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
 
-    train_data_path = "../ExternalData/sem_train_2015.csv"
-    test_data_path = "../ExternalData/sem_test_2015.csv"
+    train_data_path = "ExternalData/sem_train_2015.csv"
+    test_data_path = "ExternalData/sem_test_2015.csv"
 
     # histogram_freq needs to be zero when working with GloVe embeddings!
     # is a bug in keras https://github.com/tensorflow/tensorflow/issues/41244
@@ -29,12 +30,14 @@ def main():
     utils.semeval_to_csv(validation_path, test_data_path)
 
     # Data processing
-    left, target, right, polarity = utils.semeval_data(train_data_path)
-    x_train = [left, target, right]
+    *sentences, polarity = utils.semeval_data(train_data_path)
+    emb = embedding.GloveEmbedding(
+        embedding_path, [training_path, validation_path])
+    x_train = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_train = tf.one_hot(polarity+1, 3, dtype='int64')
 
-    left, target, right, polarity = utils.semeval_data(test_data_path)
-    x_test = [left, target, right]
+    *sentences, polarity = utils.semeval_data(test_data_path)
+    x_test = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_test = tf.one_hot(polarity+1, 3, dtype='int64')
 
     # Specify loss function
@@ -43,9 +46,9 @@ def main():
         reduction=tf.keras.losses.Reduction.SUM)
 
     # Model call
-    haabsa = HAABSA([training_path, validation_path],
-                    embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
-                        l2=0.00001))
+    haabsa = LCRRothopPP(emb.embedding_dim, [training_path, validation_path],
+                         embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
+        l2=0.00001))
 
     # adam is a optimizer just like Stochastic Gradient Descent
     haabsa.compile('adam',  # tf.keras.optimizers.SGD(learning_rate=0.07, momentum=0.95),
@@ -56,7 +59,7 @@ def main():
     # haabsa.load_weights(checkpoint_path)
 
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=10, batch_size=32,
+        x_test, y_test), epochs=200, batch_size=64,
         callbacks=[tensorboard_callback, cp_callback])
     # print(haabsa.summary())
 
