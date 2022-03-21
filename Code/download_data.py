@@ -19,7 +19,7 @@ def amazon(folder_path: str="ExternalData"):
     path = Path.cwd() / folder_path / amazon.split('/')[-1][:-8]
     
     print('Extracting file and writing csv file')
-    with GzipFile(fileobj=BytesIO(r.content)) as tmp_json, open(r"ExternalData\amazon.csv", 'w', newline='') as csv_file:
+    with GzipFile(fileobj=BytesIO(r.content)) as tmp_json, open(r"../ExternalData\amazon.csv", 'w', newline='') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
         writer.writeheader()
 
@@ -129,7 +129,7 @@ def yelp():
     print('Getting content')
     with tarfile.open(fileobj=BytesIO(file.content)) as tar:
         print('Extracting file & writing csv file')
-        with tar.extractfile(tar.getmembers()[3]) as tmp_json, open(r"ExternalData\yelp.csv", 'w', newline='') as csv_file:
+        with tar.extractfile(tar.getmembers()[3]) as tmp_json, open(r"../ExternalData\yelp.csv", 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=['text', 'polarity'])
             writer.writeheader()
 

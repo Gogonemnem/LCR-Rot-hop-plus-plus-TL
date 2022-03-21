@@ -103,9 +103,9 @@ def vocabulary_index(f_in: str, vectorizer=None):
 
 
 def main():
-    embed_path = "ExternalData/glove.6B.300d.txt"
-    path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    data_path = "ExternalData/sem_train_2015.csv"
+    embed_path = "../ExternalData/glove.6B.300d.txt"
+    path = "../ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    data_path = "../ExternalData/sem_train_2015.csv"
     semeval_to_csv(path, data_path)
 
 # def old_main():
