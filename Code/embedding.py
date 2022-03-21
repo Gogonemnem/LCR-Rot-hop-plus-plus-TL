@@ -1,7 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import tensorflow_hub as hub
-import tensorflow_text as text
 
 import utils
 
@@ -48,6 +46,8 @@ class GloveEmbedding(Embedding):
 
 
 class BERTEmbedding(Embedding):
+    import tensorflow_hub as hub
+    import tensorflow_text as text
     def __init__(self, pp_url="https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3",
                  bert_url='https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4') -> None:
         embedding_dim = 768 # TODO: Make modifiable for other berts
