@@ -6,7 +6,7 @@ from attention import BilinearAttention, HierarchicalAttention
 
 
 class TL(tf.keras.Model):
-    def __init__(self, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
+    def __init__(self, embedding_dim, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
         """Creates a new Transfer Learning model described in the paper.
 
         Args:
@@ -33,13 +33,8 @@ class TL(tf.keras.Model):
         self.drop_input = Dropout(drop_1)
         self.drop_output = Dropout(drop_2)
 
-        # Check which embedding to use
-        if data_paths and embedding_path:
-            self.embedding = GloveEmbedding(
-                embedding_path, data_paths)
-        else:
-            self.embedding = BERTEmbedding()
-        self.embedding_dim = self.embedding.embedding_dim
+        # Check which embedding dim is used
+        self.embedding_dim = embedding_dim
 
         # BiLSTM layers
         self.hidden_units = hidden_units if hidden_units else self.embedding_dim
@@ -94,12 +89,11 @@ class TL(tf.keras.Model):
         ### Embedding & BiLSTMs
         # Document level
         if input_document is not None: # check if documents are present
-            embedded_document = self.embedding(input_document)
-            embedded_document = self.drop_input(embedded_document)
+            input_document = self.drop_input(input_document)
 
-            doc_left_bilstm = self.left_bilstm(embedded_document)
-            doc_center_bilstm = self.target_bilstm(embedded_document)
-            doc_right_bilstm = self.right_bilstm(embedded_document)
+            doc_left_bilstm = self.left_bilstm(input_document)
+            doc_center_bilstm = self.target_bilstm(input_document)
+            doc_right_bilstm = self.right_bilstm(input_document)
 
             doc_left = self.average_pooling(doc_left_bilstm)
             doc_center = self.average_pooling(doc_center_bilstm)
@@ -108,17 +102,14 @@ class TL(tf.keras.Model):
         # Aspect level
         if not None in [input_left, input_target, input_right]: # inputs[0:3], check if aspects are present
             # embedding is not trainable, thus you can use it again
-            embedded_left = self.embedding(input_left)
-            embedded_left = self.drop_input(embedded_left)
-            left_bilstm = self.left_bilstm(embedded_left)
+            input_left = self.drop_input(input_left)
+            left_bilstm = self.left_bilstm(input_left)
 
-            embedded_target = self.embedding(input_target)
-            embedded_target = self.drop_input(embedded_target)
-            target_bilstm = self.target_bilstm(embedded_target)
+            input_target = self.drop_input(input_target)
+            target_bilstm = self.target_bilstm(input_target)
 
-            embedded_right = self.embedding(input_right)
-            embedded_right = self.drop_input(embedded_right)
-            right_bilstm = self.right_bilstm(embedded_right)
+            input_right = self.drop_input(input_right)
+            right_bilstm = self.right_bilstm(input_right)
 
             # Representations
             representation_target_left = representation_target_right = self.average_pooling(
