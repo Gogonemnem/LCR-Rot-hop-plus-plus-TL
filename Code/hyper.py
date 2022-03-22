@@ -34,7 +34,7 @@ def build_model(hp):
     hidden_units = hp.Int("hidden_units", min_value=200, max_value=400, step=50)
 
     # Initialize model.
-    model = LCRRothopPP(emb, hop=1, hierarchy=None, drop_1=drop_rate_1, drop_2=drop_rate_2, hidden_units=hidden_units, regularizer=regularizer)
+    model = LCRRothopPP(emb, hop=3, hierarchy=(False, True), drop_1=drop_rate_1, drop_2=drop_rate_2, hidden_units=hidden_units, regularizer=regularizer)
 
     # loss='categorical_crossentropy' works here, bc hyperparameter tuning
     # adam is a optimizer just like Stochastic Gradient Descent
