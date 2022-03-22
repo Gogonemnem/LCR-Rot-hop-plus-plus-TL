@@ -1,6 +1,5 @@
 import datetime
 import pandas as pd
-from metrics import CombinedCrossEntropy, CombinedAccuracy
 import numpy as np
 
 import tensorflow as tf
@@ -36,19 +35,21 @@ def main():
         embedding_path, [training_path, validation_path])
     x_train = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_train = tf.one_hot(polarity+1, 3)
-    y_train = [y_train, np.full(tf.shape(y_train), np.nan)]
+    y_train = {'asp': y_train, 'doc': np.full(tf.shape(y_train), np.nan)}
 
     *sentences, polarity = utils.semeval_data(test_data_path)
     x_test = [embedding.embed(emb, *sentences)[i] for i in range(3)]
     y_test = tf.one_hot(polarity+1, 3)
-    y_test = [y_test, np.full(tf.shape(y_test), np.nan)]
+    y_test = {'asp': y_test, 'doc': np.full(tf.shape(y_test), np.nan)}
 
     # Specify loss function
     # loss='categorical_crossentropy' does not work properly, not properly scaled to regulizers
     # cce = tf.keras.losses.CategoricalCrossentropy(
     #     reduction=tf.keras.losses.Reduction.SUM)
-    cce = CombinedCrossEntropy(reduction=tf.keras.losses.Reduction.SUM)
-    metrics = ['acc']
+    cce = {'asp': tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM),
+           'doc': tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.SUM)}
+    loss_weights = {'asp': 1, 'doc': 0}
+    metrics = {'asp': 'acc', 'doc': 'acc'}
     
     # Model call
     haabsa = LCRRothopPP(emb.embedding_dim, [training_path, validation_path],
@@ -57,14 +58,15 @@ def main():
 
     # adam is a optimizer just like Stochastic Gradient Descent
     haabsa.compile('adam',  # tf.keras.optimizers.SGD(learning_rate=0.07, momentum=0.95),
-                   loss=cce, metrics=metrics, run_eagerly=False)  # TODO:run_eagerly off when done!
+                   loss=cce, loss_weights=loss_weights,
+                   metrics=metrics, run_eagerly=False)  # TODO:run_eagerly off when done!
 
     # pretrained or not -> Loads the weights
     # haabsa.load_weights(checkpoint_path)
 
     haabsa.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=200, batch_size=64,
-        callbacks=[tensorboard_callback, cp_callback])
+        x_test, y_test), epochs=200, batch_size=64,)
+        # callbacks=[tensorboard_callback, cp_callback])
     # print(haabsa.summary())
 
     # just for us to debug the predictions
