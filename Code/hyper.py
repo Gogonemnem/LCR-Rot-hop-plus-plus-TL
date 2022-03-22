@@ -12,23 +12,23 @@ import embedding
 def build_model(hp):
     emb = embedding.BERTEmbedding()
 
-    # Tune regularizers rate for L1 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
-    hp_l1_rates = hp.Choice("l1_regularizer", values=[10**-i for i in range(1, 10)])
+    # Tune regularizers rate for L1 regularizer with values from 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l1_rates = hp.Choice("l1_regularizer", values=[10**-i for i in range(3, 10)])
 
-    # Tune regularizers rate for L2 regularizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
-    hp_l2_rates = hp.Choice("l2_regularizer", values=[10**-i for i in range(1, 10)])
+    # Tune regularizers rate for L2 regularizer with values from 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
+    hp_l2_rates = hp.Choice("l2_regularizer", values=[10**-i for i in range(3, 10)])
 
     regularizer = tf.keras.regularizers.L1L2(l1=hp_l1_rates, l2=hp_l2_rates)
 
 
-    # Tune learning rate for Adam optimizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07, 1e-08 or 1e-09
-    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(1, 10)])
+    # Tune learning rate for Adam optimizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07
+    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(1, 8)])
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=hp_learning_rate)
 
-    # Tune dropout layers with values from 0 - 0.7 with stepsize of 0.1.
-    drop_rate_1 = hp.Float("dropout_1", 0, 0.7, step=0.1)
-    drop_rate_2 = hp.Float("dropout_2", 0, 0.7, step=0.1)
+    # Tune dropout layers with values from 0.2 - 0.7 with stepsize of 0.1.
+    drop_rate_1 = hp.Float("dropout_1", 0.2, 0.7, step=0.1)
+    drop_rate_2 = hp.Float("dropout_2", 0.2, 0.7, step=0.1)
 
     # Tune number of hidden layers for the BiLSTMs
     hidden_units = hp.Int("hidden_units", min_value=200, max_value=400, step=50)
