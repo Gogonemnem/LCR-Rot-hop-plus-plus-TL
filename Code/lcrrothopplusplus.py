@@ -6,7 +6,7 @@ from attention import BilinearAttention, HierarchicalAttention
 
 
 class LCRRothopPP(tf.keras.Model):
-    def __init__(self, embedding_dim, data_paths: list = None, embedding_path: str = None, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
+    def __init__(self, embedding_layer, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
         """Creates a new LCR-Rot-hop++ model described in Trusca's paper.
 
         Args:
@@ -33,8 +33,9 @@ class LCRRothopPP(tf.keras.Model):
         self.drop_input = Dropout(drop_1)
         self.drop_output = Dropout(drop_2)
 
+        self.embedding_layer = embedding_layer
         # Check which embedding to use
-        self.embedding_dim = embedding_dim
+        self.embedding_dim = self.embedding_layer.embedding_dim
 
         # BiLSTM layers
         self.hidden_units = hidden_units if hidden_units else self.embedding_dim
@@ -84,12 +85,15 @@ class LCRRothopPP(tf.keras.Model):
         input_left, input_target, input_right = inputs[0], inputs[1], inputs[2]
 
         # BiLSTMs
+        input_left = self.embedding_layer(input_left)
         input_left = self.drop_input(input_left)
         left_bilstm = self.left_bilstm(input_left)
 
+        input_target = self.embedding_layer(input_target)
         input_target = self.drop_input(input_target)
         target_bilstm = self.target_bilstm(input_target)
 
+        input_right = self.embedding_layer(input_right)
         input_right = self.drop_input(input_right)
         right_bilstm = self.right_bilstm(input_right)
 

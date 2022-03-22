@@ -31,14 +31,16 @@ def main():
 
     # Data processing
     *sentences, polarity = utils.semeval_data(train_data_path)
-    emb = embedding.GloveEmbedding(
-        embedding_path, [training_path, validation_path])
-    x_train = [embedding.embed(emb, *sentences)[i] for i in range(3)]
+    # emb = embedding.GloveEmbedding(
+    #     embedding_path, [training_path, validation_path])
+    emb = embedding.BERTEmbedding()
+    x_train = sentences
     y_train = tf.one_hot(polarity+1, 3)
     y_train = {'asp': y_train, 'doc': np.full(tf.shape(y_train), np.nan)}
 
     *sentences, polarity = utils.semeval_data(test_data_path)
-    x_test = [embedding.embed(emb, *sentences)[i] for i in range(3)]
+    # x_test = [embedding.embed(emb, *sentences)[i] for i in range(3)]
+    x_test = sentences
     y_test = tf.one_hot(polarity+1, 3)
     y_test = {'asp': y_test, 'doc': np.full(tf.shape(y_test), np.nan)}
 
@@ -52,8 +54,7 @@ def main():
     metrics = {'asp': 'acc', 'doc': 'acc'}
     
     # Model call
-    haabsa = LCRRothopPP(emb.embedding_dim, [training_path, validation_path],
-                         embedding_path, hop=1, hierarchy=None, regularizer=tf.keras.regularizers.L2(
+    haabsa = LCRRothopPP(emb, hidden_units=300, hop=3, hierarchy=(False, True), regularizer=tf.keras.regularizers.L2(
         l2=0.00001))
 
     # adam is a optimizer just like Stochastic Gradient Descent

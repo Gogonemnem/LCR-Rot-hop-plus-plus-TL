@@ -36,7 +36,9 @@ class GloveEmbedding(Embedding):
                 # padding when sentence (or target phrase) is too short
                 # no idea what oov is though
                 embedding_matrix[i] = embedding_vector
-        self.embedding = tf.keras.layers.Embedding(num_tokens, self.embedding_dim, embeddings_initializer=tf.keras.initializers.Constant(embedding_matrix), trainable=False)
+        self.embedding = tf.keras.layers.Embedding(num_tokens, self.embedding_dim, 
+                            embeddings_initializer=tf.keras.initializers.Constant(embedding_matrix), trainable=False,)
+                            # mask_zero=False) # mask zero is better, but veryy slow
 
     def build(self, input_shape):
         super().build(input_shape)
@@ -79,7 +81,7 @@ def embed(embedding_layer, *sentences, path='ExternalData/embedded'):
     embeddings = []
     for sent in sentences:
         embeddings.append(embedding_layer(sent))
-    embeddings = np.stack(embeddings)
+    # embeddings = np.stack(embeddings)
     # np.save(path)
     return embeddings
 
