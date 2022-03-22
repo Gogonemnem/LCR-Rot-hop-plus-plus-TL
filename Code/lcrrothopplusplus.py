@@ -1,4 +1,5 @@
 import numpy as np
+from embedding import BERTEmbedding
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D
@@ -6,7 +7,7 @@ from attention import BilinearAttention, HierarchicalAttention
 
 
 class LCRRothopPP(tf.keras.Model):
-    def __init__(self, embedding_layer, invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
+    def __init__(self, embedding_layer=BERTEmbedding(), invert: bool = False, hop: int = 1, hierarchy: tuple = None, drop_1: float = 0.2, drop_2: float = 0.5, hidden_units: int = None, regularizer=None):
         """Creates a new LCR-Rot-hop++ model described in Trusca's paper.
 
         Args:
