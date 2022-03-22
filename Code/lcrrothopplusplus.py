@@ -125,8 +125,9 @@ class LCRRothopPP(tf.keras.Model):
         v = self.drop_output(v)
 
         pred = self.probabilities(v)
-        copy = tf.fill(tf.shape(pred), np.nan)
-        return {'asp': pred, 'doc': copy}
+        # copy = tf.fill(tf.shape(pred), np.nan)
+        # return {'asp': pred, 'doc': copy} # return dictionary for tl
+        return pred
 
     def _apply_bilinear_attention(self, left_bilstm, target_bilstm, right_bilstm, representation_left, representation_target_left, representation_target_right, representation_right):
         """Applies the attention layer described by in the paper"""
