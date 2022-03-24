@@ -1,5 +1,5 @@
 import numpy as np
-from Code.embedding import BERTEmbedding
+from embedding import BERTEmbedding
 import tensorflow as tf
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Activation, Dropout
 from tensorflow_addons.layers import AdaptiveAveragePooling1D

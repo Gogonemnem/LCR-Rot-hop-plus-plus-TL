@@ -42,13 +42,28 @@ class TL(tf.keras.Model):
 
         Returns: Probabilities per class
         """
-        *input_asp, input_doc = inputs[0], inputs[1], inputs[2], inputs[3]
+        asp_pred = doc_pred = None
+        pred = {}
+
+        if 'doc' not in inputs and 'asp' not in inputs:
+            raise ValueError("There was no input given")
+        
+        if 'doc' in inputs:
+            input_doc = inputs['doc']
+            doc_pred = self.doc_model(input_doc)
+            pred['doc'] = doc_pred
+        
+        if 'asp' in inputs:
+            input_asp = inputs['asp']
+            asp_pred = self.asp_level(input_asp)
+            pred['asp'] = asp_pred
+
+        return pred
+        
+        #*input_asp, input_doc = inputs[0], inputs[1], inputs[2], inputs[3]
 
         # TODO: Make formal check if pret, mult or ft
         # Should not be necessary if loss weights are set correctly (I think it can handle nans)
         # but it reduces computations
-        # if tf.math.reduce_any(tf.math.is_nan(inputs[3])):
-        doc_pred = self.doc_model(input_doc)
-        asp_pred = self.asp_level(input_asp)
-
-        return {'asp': asp_pred, 'doc': doc_pred}
+        
+        # return {'asp': asp_pred, 'doc': doc_pred}
