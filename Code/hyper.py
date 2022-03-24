@@ -21,8 +21,8 @@ def build_model(hp):
     regularizer = tf.keras.regularizers.L1L2(l1=hp_l1_rates, l2=hp_l2_rates)
 
 
-    # Tune learning rate for Adam optimizer with values from 0.1, 0.01, 0.001, 0.0001, 1e-05, 1e-06, 1e-07
-    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(1, 8)])
+    # Tune learning rate for Adam optimizer with values from 0.01, 0.001 & 0.0001
+    hp_learning_rate = hp.Choice("learning_rate", values=[10**-i for i in range(2, 5)])
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=hp_learning_rate)
 
@@ -57,18 +57,18 @@ def main():
     # Instantiate the tuner
     tuner = kt.Hyperband(build_model,
                         objective="val_accuracy",
-                        max_epochs=20,
+                        max_epochs=10,
                         factor=3,
-                        hyperband_iterations=10,
+                        hyperband_iterations=2,
                         directory="logs/fit",
                         project_name="kt_hyperband",)
 
-    tuner.search(x_train, y_train, validation_data=(x_test, y_test), epochs=10, batch_size=64, callbacks=[stop_early], verbose=1)
+    tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, callbacks=[stop_early], verbose=1)
     
     models = tuner.get_best_models(num_models=1)
     best_model = models[0]
 
-    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=64, epochs=100, callbacks=[stop_early], verbose=1)
+    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, epochs=100, callbacks=[stop_early], verbose=1)
 
     best_model.save("Trained_Model")
 
