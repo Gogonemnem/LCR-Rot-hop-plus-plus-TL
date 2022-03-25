@@ -7,11 +7,22 @@ df: dd.DataFrame = dd.read_csv('ExternalData/yelp.csv', on_bad_lines='skip', eng
 # df['polarity'] = df['polarity'].astype(int)
 size = 10_000
 pos: dd.DataFrame = df.loc[df['polarity'] == '1']
-pos = pos.sample(frac=size/len(pos), replace=size/len(pos)>1)
+pos = pos.sample(frac=(size+10)/len(pos), replace=(size+10)/len(pos)>1).head(size, -1)
+print(len(pos))
 neu: dd.DataFrame = df.loc[df['polarity'] == '0']
-neu = neu.sample(frac=size/len(neu), replace=size/len(neu)>1)
+neu = neu.sample(frac=(size+10)/len(neu), replace=(size+10)/len(neu)>1).head(size, -1)
+print(len(neu))
 neg: dd.DataFrame = df.loc[df['polarity'] == '-1']
-neg = neg.sample(frac=size/len(neg), replace=size/len(neg)>1)
+neg = neg.sample(frac=(size+10)/len(neg), replace=(size+10)/len(neg)>1).head(size, -1)
+print(len(neg))
 
-print(len(pos), len(neu), len(neg))
+# neu: dd.DataFrame = df.loc[df['polarity'] == '0']
+# neu = neu.sample(frac=(size+10)/len(neu), replace=(size+10)/len(neu)>1).reset_index().loc['0': f'{size}']
+# neg: dd.DataFrame = df.loc[df['polarity'] == '-1']
+# neg = neg.sample(frac=(size+10)/len(neg), replace=(size+10)/len(neg)>1).reset_index().loc['0': f'{size}']
+
+sample = dd.concat([pos, neu, neg]).sample(frac=1)
+print(len(sample))
+
+sample.to_csv('ExternalData/yelp/yelp-*.csv')  
 
