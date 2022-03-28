@@ -81,8 +81,8 @@ def vocabulary_index(f_in: str, vectorizer=None):
     return vectorizer, word_index
 
 def csv_to_input(inpath, column_names: Sequence[str]):
-    df = dd.read_csv(inpath).compute()
-    return [df[column_name] for column_name in column_names]
+    df = dd.read_csv(inpath).compute()[column_names].fillna('')
+    return df.T.values
     
 def main():
     semeval_to_csv("ExternalData\ABSA16_Restaurants_Train_SB1_v2.xml", "ExternalData\sem_train_2016.csv")
