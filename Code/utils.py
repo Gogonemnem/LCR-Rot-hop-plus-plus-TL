@@ -1,3 +1,5 @@
+from typing import Sequence
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -78,12 +80,13 @@ def vocabulary_index(f_in: str, vectorizer=None):
     word_index = dict(zip(voc, range(len(voc))))
     return vectorizer, word_index
 
-
+def csv_to_input(inpath, column_names: Sequence[str]):
+    df = dd.read_csv(inpath).compute()
+    return [df[column_name] for column_name in column_names]
+    
 def main():
-    embed_path = "../ExternalData/glove.6B.300d.txt"
-    path = "../ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    data_path = "../ExternalData/sem_train_2015.csv"
-    semeval_to_csv(path, data_path)
+    semeval_to_csv("ExternalData\ABSA16_Restaurants_Train_SB1_v2.xml", "ExternalData\sem_train_2016.csv")
+    semeval_to_csv("ExternalData\EN_REST_SB1_TEST.xml.gold", "ExternalData\sem_test_2016.csv")
 
 
 if __name__ == "__main__":

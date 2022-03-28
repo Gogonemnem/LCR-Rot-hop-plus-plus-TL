@@ -153,15 +153,15 @@ def yelp():
                     polarity = 0
                 elif data['stars'] > 3:
                     polarity = 1
-                writer.writerow({"text": data['text'], "polarity": polarity})
+                writer.writerow({"text": data['text'].replace("\n", " "), "polarity": polarity})
     print('csv file created')
 
 
 if __name__ == '__main__':
     # glove("https://nlp.stanford.edu/data/glove.6B.zip")
-    glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
+    # glove("https://nlp.stanford.edu/data/glove.42B.300d.zip")
     # semeval(2015)
-    # semeval(2016)
+    semeval(2016)
     # yelp()
-    amazon()
+    # amazon()
     pass
