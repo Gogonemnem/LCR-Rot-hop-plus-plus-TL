@@ -19,11 +19,10 @@ class TL(tf.keras.Model):
         Make sure to use sensible inputs, no checks are made.
         """
         super().__init__()
-
-        self.doc_model = document.Document(
-            embedding_layer, drop_1, drop_2, hidden_units, regularizer)
         self.asp_level = lcrrothopplusplus.LCRRothopPP(
             embedding_layer, invert, hop, hierarchy, drop_1, drop_2, hidden_units, regularizer)
+        self.doc_model = document.Document(
+            embedding_layer, drop_1, drop_2, hidden_units, regularizer)
 
         # These references are set at initialization -> pretraining 'shared' does not allow you to separate them again at mult or ft, unless you manually separate them 
         if share_bilstms:
