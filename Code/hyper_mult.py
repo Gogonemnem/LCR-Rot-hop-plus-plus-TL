@@ -70,11 +70,12 @@ def main():
                         directory="logs/hp/mult",
                         project_name="kt_hyperband",)
     
-    tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, callbacks=[stop_early], verbose=1)
+    tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=16, callbacks=[stop_early], verbose=1)
 
     models = tuner.get_best_models(num_models=1)
     best_model = models[0]
-    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, epochs=20, callbacks=[stop_early], verbose=1)
+    print(best_model)
+    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=16, epochs=20, callbacks=[stop_early], verbose=1)
     best_model.save("trained_mult")
 
 

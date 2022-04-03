@@ -71,14 +71,14 @@ if __name__ == "__main__":
     yelp_pret_train_path = 'ExternalData/yelp/pret/train-*.csv'
     yelp_pret_test_path = 'ExternalData/yelp/pret/test-*.csv'
 
-    yelp_mult_train_path = 'ExternalData/yelp/mult/train-*.csv'
-    yelp_mult_test_path = 'ExternalData/yelp/mult/test-*.csv'
+    yelp_mult_train_path = 'ExternalData/yelp/2015/mult/train-*.csv'
+    yelp_mult_test_path = 'ExternalData/yelp/2015/mult/test-*.csv'
 
-    sem_rest_mult_train_path = 'ExternalData/semeval_2016/restaurant/mult/train-*.csv'
-    sem_rest_mult_test_path = 'ExternalData/semeval_2016/restaurant/mult/test-*.csv'
+    sem_rest_mult_train_path = 'ExternalData/semeval_2015/restaurant/mult/train-*.csv'
+    sem_rest_mult_test_path = 'ExternalData/semeval_2015/restaurant/mult/test-*.csv'
 
-    sem_rest_ft_train_path = 'ExternalData/semeval_2016/restaurant/ft/train.csv'
-    sem_rest_ft_test_path = 'ExternalData/semeval_2016/restaurant/ft/test.csv'
+    sem_rest_ft_train_path = 'ExternalData/semeval_2015/restaurant/ft/train.csv'
+    sem_rest_ft_test_path = 'ExternalData/semeval_2015/restaurant/ft/test.csv'
 
     # split large file into training set and test set
     # print('splitting large file')
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     # [0.8, 0.2])
 
     # Sample for pretraining
-    print('sampling pret documents')
-    sample(yelp_pop_train_path, yelp_pret_train_path, size=10_000, balance=True)
-    sample(yelp_pop_test_path, yelp_pret_test_path, size=1_000)
+    # print('sampling pret documents')
+    # sample(yelp_pop_train_path, yelp_pret_train_path, size=10_000, balance=True)
+    # sample(yelp_pop_test_path, yelp_pret_test_path, size=1_000)
 
     # Sample aspect for mult
     print('sampling mult aspects')
