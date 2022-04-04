@@ -72,7 +72,7 @@ def make_model(settings: list,
     # 8 => 0.8855 (epoch 12)
     tf.random.set_seed(10)
     seed(10)
-    bs = 8
+    bs = 16
     loss = 'categorical_crossentropy'
     f1 = F1Score(num_classes=3, average='macro')
     if h is not None:
@@ -138,7 +138,7 @@ def make_model(settings: list,
         callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
         model.compile(optimizer=optimizer, loss=loss, loss_weights={'asp': 1, 'doc': lamb},
                       metrics=['accuracy', f1])
-        model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=200, batch_size=2, callbacks=[callback])
+        model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=200, batch_size=bs, callbacks=[callback])
         tf.keras.backend.clear_session()
         del x_train, y_train, x_val, y_val, callback
         print("MULT stage completed")
@@ -224,14 +224,14 @@ def main():
     # pret_mult_ft_model = make_model(settings=[True, True, True],
     #                                 pret_train_path='ExternalData/yelp/train-*.csv',
     #                                 pret_test_path='ExternalData/yelp/test-*.csv',
-    #                                 mult_asp_train_path='ExternalData/rest-mult/train-*.csv',
-    #                                 mult_asp_test_path='ExternalData/rest-mult/test-*.csv',
-    #                                 mult_doc_train_path='ExternalData/yelp-mult/train-*.csv',
-    #                                 mult_doc_test_path='ExternalData/yelp-mult/test-*.csv',
-    #                                 asp_train_path='ExternalData/sem_train_2016.csv',
-    #                                 asp_test_path='ExternalData/sem_test_2016.csv',
+    #                                 mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+    #                                 mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+    #                                 mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+    #                                 mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+    #                                 asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+    #                                 asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
     #                                 h=hyper_param_pret,
-    #                                 pret_model_path='weights/pret_for_ft')
+    #                                 pret_model_path='Weights/weights/pret_for_ft')
     # pret_mult_ft_model.save_weights('weights_pmf/pret_mult_ft-ft')
     # del pret_mult_ft_model
     # tf.keras.backend.clear_session()
@@ -243,47 +243,47 @@ def main():
                         'drop_2': 0.5,
                         'hidden_units': 400,
                         'lambda': 0.5}
-    pret_for_mult_model = make_model(settings=[True, False, False],
-                                     pret_train_path='ExternalData/yelp/train-*.csv',
-                                     pret_test_path='ExternalData/yelp/test-*.csv',
-                                     mult_asp_train_path='ExternalData/rest-mult/train-*.csv',
-                                     mult_asp_test_path='ExternalData/rest-mult/test-*.csv',
-                                     mult_doc_train_path='ExternalData/yelp-mult/train-*.csv',
-                                     mult_doc_test_path='ExternalData/yelp-mult/test-*.csv',
-                                     asp_train_path='ExternalData/sem_train_2016.csv',
-                                     asp_test_path='ExternalData/sem_test_2016.csv',
-                                     h=hyper_param_mult)
-    pret_for_mult_model.save_weights('weights_pret/pret_for_mult')
-    del pret_for_mult_model
+    # pret_for_mult_model = make_model(settings=[True, False, False],
+    #                                  pret_train_path='ExternalData/yelp/train-*.csv',
+    #                                  pret_test_path='ExternalData/yelp/test-*.csv',
+    #                                  mult_asp_train_path='ExternalData/rest-mult/train-*.csv',
+    #                                  mult_asp_test_path='ExternalData/rest-mult/test-*.csv',
+    #                                  mult_doc_train_path='ExternalData/yelp-mult/train-*.csv',
+    #                                  mult_doc_test_path='ExternalData/yelp-mult/test-*.csv',
+    #                                  asp_train_path='ExternalData/sem_train_2016.csv',
+    #                                  asp_test_path='ExternalData/sem_test_2016.csv',
+    #                                  h=hyper_param_mult)
+    # pret_for_mult_model.save_weights('weights_pret/pret_for_mult')
+    # del pret_for_mult_model
     #
-    # print("Building PRET+MULT model...")
-    # pret_mult_mult_model = make_model(settings=[True, True, False],
-    #                                   pret_train_path='ExternalData/yelp/train-*.csv',
-    #                                   pret_test_path='ExternalData/yelp/test-*.csv',
-    #                                   mult_asp_train_path='ExternalData/rest-mult/train-*.csv',
-    #                                   mult_asp_test_path='ExternalData/rest-mult/test-*.csv',
-    #                                   mult_doc_train_path='ExternalData/yelp-mult/train-*.csv',
-    #                                   mult_doc_test_path='ExternalData/yelp-mult/test-*.csv',
-    #                                   asp_train_path='ExternalData/sem_train_2016.csv',
-    #                                   asp_test_path='ExternalData/sem_test_2016.csv',
-    #                                   h=hyper_param_mult,
-    #                                   pret_model_path='weights_pret/pret_for_mult')
-    # pret_mult_mult_model.save_weights('weights_pm-mult/pm-mult')
-    # del pret_mult_mult_model
-    #
-    # print("Building PRET+MULT+FT model...")
-    # pret_mult_ft_mult_model = make_model(settings=[True, True, True],
-    #                                      pret_train_path='ExternalData/yelp/train-*.csv',
-    #                                      pret_test_path='ExternalData/yelp/test-*.csv',
-    #                                      mult_asp_train_path='ExternalData/rest-mult/train-*.csv',
-    #                                      mult_asp_test_path='ExternalData/rest-mult/test-*.csv',
-    #                                      mult_doc_train_path='ExternalData/yelp-mult/train-*.csv',
-    #                                      mult_doc_test_path='ExternalData/yelp-mult/test-*.csv',
-    #                                      asp_train_path='ExternalData/sem_train_2016.csv',
-    #                                      asp_test_path='ExternalData/sem_test_2016.csv',
-    #                                      h=hyper_param_mult,
-    #                                      mult_model_path='weights_pm-mult/pm-mult')
-    # pret_mult_ft_mult_model.save_weights('weights_pmf-mult/pmf-mult')
+    print("Building PRET+MULT model...")
+    pret_mult_mult_model = make_model(settings=[True, True, False],
+                                      pret_train_path='ExternalData/yelp/train-*.csv',
+                                      pret_test_path='ExternalData/yelp/test-*.csv',
+                                      mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+                                      mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+                                      mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+                                      mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+                                      asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+                                      asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
+                                      h=hyper_param_mult,
+                                      pret_model_path='Weights/weights/pret_for_ft')
+    pret_mult_mult_model.save_weights('weights_pm-mult/pm-mult')
+    del pret_mult_mult_model
+    
+    print("Building PRET+MULT+FT model...")
+    pret_mult_ft_mult_model = make_model(settings=[True, True, True],
+                                         pret_train_path='ExternalData/yelp/train-*.csv',
+                                         pret_test_path='ExternalData/yelp/test-*.csv',
+                                         mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+                                         mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+                                         mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+                                         mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+                                         asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+                                         asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
+                                         h=hyper_param_mult,
+                                         mult_model_path='weights_pm-mult/pm-mult')
+    pret_mult_ft_mult_model.save_weights('weights_pmf-mult/pmf-mult')
 
 
 if __name__ == '__main__':
