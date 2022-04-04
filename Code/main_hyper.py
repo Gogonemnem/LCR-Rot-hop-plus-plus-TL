@@ -1,5 +1,7 @@
 import tensorflow as tf
 import keras_tuner as kt
+from tensorflow_addons.metrics import F1Score
+
 from lcrrothopplusplus import LCRRothopPP
 import utils
 import embedding
@@ -38,7 +40,8 @@ def build_model(hp):
 
     # loss='categorical_crossentropy' works here, bc hyperparameter tuning
     # adam is a optimizer just like Stochastic Gradient Descent
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+    f1 = F1Score(num_classes=3, average='macro')
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', f1])
     
     return model
 
@@ -52,25 +55,25 @@ def main():
     x_test = sentences
     y_test = tf.one_hot(polarity+1, 3)
 
-    stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+    stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10)
 
     # Instantiate the tuner
     tuner = kt.Hyperband(build_model,
                         objective="val_accuracy",
-                        max_epochs=10,
+                        max_epochs=15,
                         factor=3,
                         hyperband_iterations=2,
                         directory="logs/fit",
-                        project_name="kt_hyperband",)
+                        project_name="ft_2015_hyperband",)
 
-    tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, callbacks=[stop_early], verbose=1)
+    tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=8, callbacks=[stop_early], verbose=1)
     
     models = tuner.get_best_models(num_models=1)
     best_model = models[0]
 
-    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=32, epochs=100, callbacks=[stop_early], verbose=1)
+    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=8, epochs=200, callbacks=[stop_early], verbose=1)
 
-    best_model.save("Trained_Model")
+    best_model.save_weights("weights_ft_2015")
 
     # Get the optimal hyperparameters from the results
     best_hps=tuner.get_best_hyperparameters()[0]
@@ -79,10 +82,10 @@ def main():
 if __name__ == '__main__':
     # Implement some way afterwards
     # these are global variables now
-    embedding_path = "ExternalData/glove.6B.300d.txt"
-    embedding_path = "ExternalData/glove.42B.300d.txt"
-    training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
-    validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
+    # embedding_path = "ExternalData/glove.6B.300d.txt"
+    # embedding_path = "ExternalData/glove.42B.300d.txt"
+    # training_path = "ExternalData/ABSA15_RestaurantsTrain/ABSA-15_Restaurants_Train_Final.xml"
+    # validation_path = "ExternalData/ABSA15_Restaurants_Test.xml"
 
     train_data_path = "ExternalData/sem_train_2015.csv"
     test_data_path = "ExternalData/sem_test_2015.csv"

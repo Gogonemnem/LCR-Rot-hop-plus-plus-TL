@@ -169,12 +169,12 @@ def make_model(settings: list,
 
 
 def main():
-    hyper_param_pret = {'regularizer': tf.keras.regularizers.L1L2(l1=1e-08, l2=1e-05),
-                        'lr': 0.001,
-                        'drop_1': 0.2,
-                        'drop_2': 0.3,
-                        'hidden_units': 350,
-                        'lambda': 0.3}
+    # hyper_param_pret = {'regularizer': tf.keras.regularizers.L1L2(l1=1e-08, l2=1e-05),
+    #                     'lr': 0.001,
+    #                     'drop_1': 0.2,
+    #                     'drop_2': 0.3,
+    #                     'hidden_units': 350,
+    #                     'lambda': 0.3}
     # pret_for_ft_model = make_model(settings=[True, False, False],
     #                                pret_train_path='ExternalData/yelp/train-*.csv',
     #                                pret_test_path='ExternalData/yelp/test-*.csv',
@@ -236,6 +236,22 @@ def main():
     # del pret_mult_ft_model
     # tf.keras.backend.clear_session()
 
+    # print("Building the MULT+FT model...")
+    # mult_ft_model = make_model(settings=[False, True, True],
+    #                                 pret_train_path='ExternalData/yelp/train-*.csv',
+    #                                 pret_test_path='ExternalData/yelp/test-*.csv',
+    #                                 mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+    #                                 mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+    #                                 mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+    #                                 mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+    #                                 asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+    #                                 asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
+    #                                 h=hyper_param_pret
+    #                                 )
+    # mult_ft_model.save_weights('weights_mf/mult_ft-ft')
+    # del pret_mult_ft_model
+    # tf.keras.backend.clear_session()
+
     print("Making MULT-based models. Getting best PRET...")
     hyper_param_mult = {'regularizer': tf.keras.regularizers.L1L2(l1=1e-05, l2=1e-06),
                         'lr': 0.001,
@@ -270,6 +286,7 @@ def main():
                                       pret_model_path='Weights/weights/pret_for_ft')
     pret_mult_mult_model.save_weights('weights_pm-mult/pm-mult')
     del pret_mult_mult_model
+    tf.keras.backend.clear_session()
     
     print("Building PRET+MULT+FT model...")
     pret_mult_ft_mult_model = make_model(settings=[True, True, True],
@@ -284,6 +301,39 @@ def main():
                                          h=hyper_param_mult,
                                          mult_model_path='weights_pm-mult/pm-mult')
     pret_mult_ft_mult_model.save_weights('weights_pmf-mult/pmf-mult')
+    del pret_mult_ft_mult_model
+    tf.keras.backend.clear_session()
+
+    print("Building MULT model...")
+    mult_model = make_model(settings=[False, True, False],
+                                         pret_train_path='ExternalData/yelp/train-*.csv',
+                                         pret_test_path='ExternalData/yelp/test-*.csv',
+                                         mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+                                         mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+                                         mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+                                         mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+                                         asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+                                         asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
+                                         h=hyper_param_mult)
+    mult_model.save_weights('weights_mult/mult')
+    del mult_model
+    tf.keras.backend.clear_session()
+
+    print("Building MULT+FT model...")
+    mult_ft_mult_model = make_model(settings=[False, True, True],
+                                         pret_train_path='ExternalData/yelp/train-*.csv',
+                                         pret_test_path='ExternalData/yelp/test-*.csv',
+                                         mult_asp_train_path='ExternalData/semeval_2016/restaurant/mult/train-*.csv',
+                                         mult_asp_test_path='ExternalData/semeval_2016/restaurant/mult/test-*.csv',
+                                         mult_doc_train_path='ExternalData/yelp/mult/2016/train-*.csv',
+                                         mult_doc_test_path='ExternalData/yelp/mult/2016/test-*.csv',
+                                         asp_train_path='ExternalData/semeval_2016/restaurant/ft/train.csv',
+                                         asp_test_path='ExternalData/semeval_2016/restaurant/ft/test.csv',
+                                         h=hyper_param_mult,
+                            mult_model_path='weights_mult/mult')
+    mult_ft_mult_model.save_weights('weights_mf/mf-mult')
+    del mult_ft_mult_model
+    tf.keras.backend.clear_session()
 
 
 if __name__ == '__main__':
