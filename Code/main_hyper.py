@@ -5,6 +5,8 @@ from tensorflow_addons.metrics import F1Score
 from lcrrothopplusplus import LCRRothopPP
 import utils
 import embedding
+import numpy as np
+from sklearn.metrics import multilabel_confusion_matrix
 
 # useful links
 # https://towardsdatascience.com/hyperparameter-tuning-with-kerastuner-and-tensorflow-c4a4d690b31a
@@ -64,20 +66,24 @@ def main():
                         factor=3,
                         hyperband_iterations=2,
                         directory="logs/fit",
-                        project_name="ft_2015_hyperband",)
+                        project_name="2015_hyperband",)
 
     tuner.search(x_train, y_train, validation_data=(x_test, y_test), batch_size=8, callbacks=[stop_early], verbose=1)
     
     models = tuner.get_best_models(num_models=1)
     best_model = models[0]
 
-    best_model.fit(x_train, y_train, validation_data=(x_test, y_test), batch_size=8, epochs=200, callbacks=[stop_early], verbose=1)
-
-    best_model.save_weights("weights_ft_2015")
-
-    # Get the optimal hyperparameters from the results
-    best_hps=tuner.get_best_hyperparameters()[0]
-    print(best_hps)
+    print("predicting")
+    result = best_model.evaluate(x_test, y_test)
+    print(result)
+    y_pred = np.array(best_model.predict(x_test))
+    y_p = np.zeros_like(y_pred)
+    y_p[np.arange(len(y_pred)), y_pred.argmax(1)] = 1
+    print(y_p)
+    y_t = y_test.numpy()
+    print(len(y_t), len(y_p))
+    cm = utils.confusion_matrix(y_t, y_p)
+    print(cm)
 
 if __name__ == '__main__':
     # Implement some way afterwards
