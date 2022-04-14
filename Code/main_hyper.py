@@ -1,7 +1,7 @@
 import tensorflow as tf
 import keras_tuner as kt
 from tensorflow_addons.metrics import F1Score
-
+from main_transfer import pre_proc
 from lcrrothopplusplus import LCRRothopPP
 import utils
 import embedding
@@ -74,9 +74,8 @@ def main():
     best_model = models[0]
 
     print("predicting")
-    result = best_model.evaluate(x_test, y_test)
-    print(result)
-    y_pred = np.array(best_model.predict(x_test))
+    x_test, y_test = pre_proc(asp_path = r'ExternalData/test-0.csv')
+    y_pred = np.array(best_model.predict(x_test['asp']))
     y_p = np.zeros_like(y_pred)
     y_p[np.arange(len(y_pred)), y_pred.argmax(1)] = 1
     print(y_p)

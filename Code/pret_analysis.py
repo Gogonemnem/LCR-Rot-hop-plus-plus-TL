@@ -7,6 +7,8 @@ from transferlearningexperimental import TL
 from numpy.random import seed
 from tensorflow_addons.metrics.f_scores import F1Score
 import gc
+import numpy as np
+import utils
 
 n_data = []
 accuracy = []
@@ -49,8 +51,8 @@ f1 = F1Score(num_classes=3, average='macro')
 i = 6
 number_data = 3000 + i * 3000
 print('Fetching data for PRET stage, corpus size = {}'.format(number_data))
-x_doc, y_doc = sample('ExternalData/yelp/train-*.csv', size_sample=number_data)
-x_val, y_val = pre_proc(doc_path='ExternalData/yelp/test-*.csv')
+# x_doc, y_doc = sample('ExternalData/yelp/train-*.csv', size_sample=number_data)
+# x_val, y_val = pre_proc(doc_path='ExternalData/yelp/test-*.csv')
 print('Starting PRET stage')
 tf.random.set_seed(10)
 seed(10)
@@ -61,32 +63,33 @@ model = TL(hierarchy=(False, True),
                drop_2=0.4,
                hop=3,
                regularizer=tf.keras.regularizers.L1L2(l1=1e-5, l2=1e-4))
+
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
 model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', f1])
-model.fit(x_doc, y_doc, validation_data=(x_val, y_val), epochs=100, batch_size=4, callbacks=[callback])
-del x_doc, y_doc, x_val, y_val, callback
-gc.collect()
-tf.keras.backend.clear_session()
-
-print('Fetching data for FT stage.')
-x_train, y_train = pre_proc(asp_path='ExternalData/sem_train_2015.csv')
-x_val, y_val = pre_proc(asp_path='ExternalData/sem_test_2015.csv')
-
-print('Finetuning the pretrained model.')
-callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10, restore_best_weights=True)
-model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', f1])
-model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=200, batch_size=4, callbacks=[callback])
-del x_train, y_train
-gc.collect()
-tf.keras.backend.clear_session()
-result = model.evaluate(x_val, y_val, batch_size=2)
-del x_val, y_val, model
-gc.collect()
-tf.keras.backend.clear_session()
-print('Accuracy: ', result[1])
-print('f1: ', result[2])
-print('PRET corpus size: ', number_data)
-del result
-gc.collect()
-tf.keras.backend.clear_session()
+# model.fit(x_doc, y_doc, validation_data=(x_val, y_val), epochs=100, batch_size=4, callbacks=[callback])
+# del x_doc, y_doc, x_val, y_val, callback
+# gc.collect()
+# tf.keras.backend.clear_session()
+#
+# print('Fetching data for FT stage.')
+# x_train, y_train = pre_proc(asp_path='ExternalData/sem_train_2015.csv')
+# x_val, y_val = pre_proc(asp_path='ExternalData/sem_test_2015.csv')
+#
+# print('Finetuning the pretrained model.')
+# callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10, restore_best_weights=True)
+# model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', f1])
+# model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=200, batch_size=4, callbacks=[callback])
+# del x_train, y_train
+# gc.collect()
+# tf.keras.backend.clear_session()
+# result = model.evaluate(x_val, y_val, batch_size=2)
+# del x_val, y_val, model
+# gc.collect()
+# tf.keras.backend.clear_session()
+# print('Accuracy: ', result[1])
+# print('f1: ', result[2])
+# print('PRET corpus size: ', number_data)
+# del result
+# gc.collect()
+# tf.keras.backend.clear_session()
