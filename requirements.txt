@@ -1,0 +1,16 @@
+pandas
+dask
+
+beautifulsoup4
+
+tensorflow
+tensorflow-addons
+tensorflow-hub
+tensorflow-text
+tensorboard
+
+keras-tuner
+
+# maybe needed in the future, huggingface makes some nice pretrained models
+#transformers
+#sentencepiece

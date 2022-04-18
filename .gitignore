@@ -1,3 +1,8 @@
+.idea
+**/logs
+/ExternalData
+/Wallaart-HAABSA/data/externalData
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -110,6 +115,8 @@ ENV/
 env.bak/
 venv.bak/
 
+# Visual Studio Code settings
+.vscode
 # Spyder project settings
 .spyderproject
 .spyproject
