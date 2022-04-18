@@ -1,4 +1,6 @@
 pandas
+dask
+
 beautifulsoup4
 
 tensorflow
