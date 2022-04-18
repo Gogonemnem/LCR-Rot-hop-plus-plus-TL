@@ -2,9 +2,8 @@
 
 %%% Dependencies
 
-% \usepackage[utf8]{inputenc} // Is not needed for LaTeX anymore
-% \usepackage[english]{babel} // I'm not quite sure if this one is needed
-
+%For including github link
+\usepackage{hyperref}
 % Sets font
 \usepackage[T1]{fontenc}
 
@@ -18,24 +17,38 @@
 \renewcommand\UrlFont{\color{blue}\rmfamily}
 
 % Table lines
-\usepackage{booktabs}
+\usepackage{booktabs, multirow}
+
+% Matrix dimensions
+\usepackage{amsmath} 
+\newcommand{\undset}[2]{\underset{\scriptscriptstyle #1}{#2\strut}}
+
+% For todos
+\usepackage[colorinlistoftodos]{todonotes}
+
+% Can be used to cite multiple references at once
+\usepackage{cite}
+
+% for code snippits
+\usepackage{listings}
+
+%%% A lot more dependencies are probably needed, but am tired with looking them all up
 
 \begin{document}
 
 %%% Keep separate sections in own files, and use \input to add them to the main file.
 \mainmatter
 
-
-\input{OurArticles/Proposal/FrontMatter/titlepage}
-\input{OurArticles/Proposal/FrontMatter/abstract}
-% \input{OurArticles/Proposal/FrontMatter/tableofcontents}
-
-
-\input{OurArticles/Proposal/Body/1-introduction}
-
-\cite{he_exploiting_2018}
-
-\appendix
-\input{OurArticles/Proposal/Appendices/bibliography}
-
+\input{OurArticles/Main/FrontMatter/titlepage}
+\input{OurArticles/Main/FrontMatter/abstract}
+% \input{OurArticles/Main/tableofcontents}
+\input{OurArticles/Main/Body/1-introduction}
+\input{OurArticles/Main/Body/2-related work}
+\input{OurArticles/Main/Body/3-data}
+\input{OurArticles/Main/Body/4-methodology}
+\input{OurArticles/Main/Body/5-Results}
+\input{OurArticles/Main/Body/6-Conclusion}
+\bibliographystyle{OurArticles/splncs04.bst}
+\bibliography{OurArticles/references3.bib}
+\input{OurArticles/Main/Appendices/appendix}
 \end{document}
